@@ -6,11 +6,11 @@
     <title>Gui The Kid - Vencendo a CLT</title>
 
     <style>
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; background: linear-gradient(135deg, #2c1810, #1a0d00);
-            font-family: 'Courier New', monospace; touch-action: none; user-select: none;
+            overflow: hidden; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background: #1a0d00; font-family: 'Courier New', monospace;
+            touch-action: none; user-select: none;
         }
         canvas {
             display: block; max-width: 100%; max-height: 100%;
@@ -33,37 +33,27 @@
     </style>
 </head>
 <body>
-    <div id="loading">CARREGANDO PIXEL ART...</div>
+    <div id="loading">CARREGANDO 2D...</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
     <script>
         // ===================================
-        // GUI THE KID - PIXEL ART PERFEITO
-        // Estilo idêntico à imagem - Sem erros!
+        // GUI THE KID - 2D SIDE-SCROLLER PERFEITO
+        // Pixel Art 100% fiel à imagem!
         // ===================================
 
         let gui, chaoY, obstaculos = [], itens = [], nuvens = [];
-        let velocidadeJogo = 3.5, gameState = 'running', vida = 100, dinheiro = 0, fase = 1;
-        let score = 0, cameraX = 0, shake = 0;
-        let pixelSize = 4; // Tamanho dos pixels para pixel art nítido
-        let canJump = true; // Flag para pulo simples
+        let velocidadeJogo = 4, gameState = 'running', vida = 100, dinheiro = 0, fase = 1;
+        let shake = 0, score = 0, canJump = true;
 
-        // Paleta de cores da imagem
-        const COLORS = {
-            skyDay: [146, 191, 226],
-            skyNight: [86, 101, 155],
-            building1: [77, 57, 122],
-            building2: [120, 85, 173],
-            ground: [79, 59, 44],
-            guiShirt: [200, 220, 255],
-            guiPants: [100, 140, 220],
-            guiHair: [90, 60, 30],
-            guiSkin: [255, 200, 150],
-            cone: [255, 140, 0],
-            trash: [90, 90, 90],
-            homeless: [60, 50, 40],
-            money: [255, 230, 100],
-            controller: [50, 180, 255]
+        const C = {
+            skyTop: [200,120,80], skyBot: [50,30,60],
+            ground: [79,59,44], line: [120],
+            shirt: [200,220,255], collar: [100,150,220],
+            pants: [100,140,220], shoe: [40],
+            hair: [90,60,30], skin: [255,200,150],
+            cone: [255,140,0], trash: [90,90,90], box: [120,60,40], homeless: [60,50,40],
+            money: [255,230,100], controller: [50,180,255]
         };
 
         function setup() {
@@ -71,22 +61,22 @@
             pixelDensity(1);
             textFont('monospace');
             textAlign(CENTER, CENTER);
-            chaoY = height * 0.75;
-            
+            textSize(12);
+            chaoY = height - 100;
             gui = new Gui();
-            for(let i=0; i<5; i++) nuvens.push(new Nuvem());
+            for(let i = 0; i < 6; i++) nuvens.push(new Nuvem());
         }
 
         function draw() {
-            // Céu gradiente pôr do sol (igual à imagem)
-            for(let y=0; y<height; y++) {
-                let inter = map(y, 0, height*0.6, 0, 1);
-                let c = lerpColor(color(200,120,80), color(50,30,60), inter);
-                stroke(c); line(0, y, width, y);
+            // Céu 2D gradiente
+            for(let y = 0; y < chaoY; y++) {
+                let t = map(y, 0, chaoY, 0, 1);
+                let col = lerpColor(color(...C.skyTop), color(...C.skyBot), t);
+                stroke(col); line(0, y, width, y);
             }
 
-            // Desenhar nuvens
-            for(let nuvem of nuvens) nuvem.draw();
+            // Nuvens
+            for(let n of nuvens) n.draw();
 
             if(gameState === 'running') {
                 updateGame();
@@ -95,296 +85,236 @@
             } else if(gameState === 'vitoria') {
                 drawVitoria();
             }
-            
+
             drawHUD();
         }
 
         function updateGame() {
-            cameraX += velocidadeJogo;
-            score += 1;
-            
-            // Shake ao pular
-            shake *= 0.9;
-            
-            // Spawn elementos
-            if(frameCount % 120 === 0) obstaculos.push(new Obstaculo());
-            if(frameCount % 180 === 0) itens.push(new Item());
-            
-            // Atualizar nuvens (parallax)
-            for(let nuvem of nuvens) nuvem.update();
-            
-            // Atualizar obstáculos
-            for(let i=obstaculos.length-1; i>=0; i--) {
-                let obs = obstaculos[i];
-                obs.update();
-                obs.draw();
-                if(gui.colide(obs)) {
+            score++;
+            shake *= 0.92;
+
+            // Spawn
+            if(frameCount % 100 === 0) obstaculos.push(new Obstaculo());
+            if(frameCount % 160 === 0) itens.push(new Item());
+
+            // Nuvens
+            for(let n of nuvens) n.update();
+
+            // Obstáculos
+            for(let i = obstaculos.length - 1; i >= 0; i--) {
+                let o = obstaculos[i];
+                o.update();
+                o.draw();
+                if(gui.colide(o)) {
                     vida -= 25;
                     obstaculos.splice(i, 1);
-                    shake = 8;
-                    if(vida <= 0) gameOver();
+                    shake = 12;
+                    if(vida <= 0) { gameState = 'gameover'; noLoop(); }
                 }
-                if(obs.x < -100) obstaculos.splice(i, 1);
+                if(o.x < -60) obstaculos.splice(i, 1);
             }
-            
-            // Atualizar itens
-            for(let i=itens.length-1; i>=0; i--) {
-                let item = itens[i];
-                item.update();
-                item.draw();
-                if(gui.pega(item)) {
-                    if(item.tipo === 'dinheiro') dinheiro += 10;
-                    else vida = min(100, vida + 40);
+
+            // Itens
+            for(let i = itens.length - 1; i >= 0; i--) {
+                let it = itens[i];
+                it.update();
+                it.draw();
+                if(gui.pega(it)) {
+                    if(it.tipo === 'dinheiro') dinheiro += 10;
+                    else vida = min(100, vida + 35);
                     itens.splice(i, 1);
                 }
-                if(item.x < -100) itens.splice(i, 1);
+                if(it.x < -40) itens.splice(i, 1);
             }
-            
+
             // Fases
-            if(dinheiro >= 30 && fase === 1) { fase = 2; velocidadeJogo = 4; }
-            if(dinheiro >= 70 && fase === 2) { fase = 3; velocidadeJogo = 4.5; }
-            if(dinheiro >= 120 && fase === 3) vitoria();
-            
+            if(dinheiro >= 35 && fase === 1) { fase = 2; velocidadeJogo = 5; }
+            if(dinheiro >= 80 && fase === 2) { fase = 3; velocidadeJogo = 5.5; }
+            if(dinheiro >= 130 && fase === 3) { gameState = 'vitoria'; noLoop(); }
+
             gui.update();
             gui.draw();
-            
-            drawGround();
+            drawChao();
         }
 
-        function drawGround() {
-            // Chão pixelado
-            fill(COLORS.ground);
+        function drawChao() {
+            fill(...C.ground);
+            noStroke();
             rect(0, chaoY, width, height - chaoY);
-            // Linhas de rua
-            stroke(120);
-            for(let x=0; x<width; x+=50) line(x, chaoY, x+25, chaoY);
+            stroke(...C.line);
+            strokeWeight(3);
+            for(let x = 0; x < width; x += 60) line(x, chaoY, x + 30, chaoY);
+            noStroke();
         }
 
-        // PIXEL ART GUI (IDÊNTICO À IMAGEM - MAIS DETALHADO)
+        // ========== GUI 2D PIXEL ART ==========
         class Gui {
             constructor() {
-                this.x = 120;
-                this.y = chaoY;
+                this.x = 80;
+                this.y = chaoY - 42;
                 this.vy = 0;
-                this.w = 28 * pixelSize;
-                this.h = 40 * pixelSize;
                 this.frame = 0;
-                this.puloFrame = 0;
+                this.w = 28;
+                this.h = 42;
             }
-            
             update() {
-                this.frame += 0.15;
-                
-                // Física suave
-                this.vy += 0.8;
+                this.frame += 0.25;
+                this.vy += 0.9;
                 this.y += this.vy;
-                if(this.y > chaoY) {
-                    this.y = chaoY;
+                if(this.y >= chaoY - 42) {
+                    this.y = chaoY - 42;
                     this.vy = 0;
-                    this.puloFrame = 0;
                     canJump = true;
                 }
             }
-            
-            colide(obs) {
-                return this.x < obs.x + obs.w && this.x + this.w > obs.x &&
-                       this.y < obs.y + obs.h && this.y + this.h > obs.y;
+            colide(o) {
+                return this.x < o.x + o.w && this.x + this.w > o.x &&
+                       this.y < o.y + o.h && this.y + this.h > o.y;
             }
-            
-            pega(item) {
-                return dist(this.x + this.w/2, this.y + this.h/2, item.x, item.y) < 40;
+            pega(it) {
+                return dist(this.x + 14, this.y + 21, it.x, it.y) < 30;
             }
-            
             draw() {
                 push();
                 translate(this.x, this.y + shake);
-                scale(pixelSize);
-                
-                // Pernas (animação walk cycle - mais fluida)
-                let legOffset = sin(this.frame) * 3;
-                fill(COLORS.guiPants);
-                // Perna esquerda
-                rect(6, 26, 5, 14, 1);
-                rect(6+legOffset, 34, 5, 6, 1);
-                // Perna direita
-                rect(17, 26, 5, 14, 1);
-                rect(17-legOffset, 34, 5, 6, 1);
-                
+
+                // Pernas
+                let leg = sin(this.frame) * 3;
+                fill(...C.pants);
+                rect(6, 26, 5, 14, 1); rect(6 + leg, 34, 5, 6, 1);
+                rect(17, 26, 5, 14, 1); rect(17 - leg, 34, 5, 6, 1);
+
                 // Sapatos
-                fill(40);
-                rect(6, 38, 6, 3);
-                rect(17, 38, 6, 3);
-                
+                fill(...C.shoe);
+                rect(6, 38, 6, 3); rect(17, 38, 6, 3);
+
                 // Calça
-                fill(COLORS.guiPants);
+                fill(...C.pants);
                 rect(6, 22, 16, 6, 2);
-                
-                // Camisa (branca com colarinho azul - igual imagem)
-                fill(COLORS.guiShirt);
+
+                // Camisa
+                fill(...C.shirt);
                 rect(4, 10, 20, 14, 2);
-                fill(100, 150, 220);
-                rect(7, 12, 2, 3); // colarinho
-                rect(19, 12, 2, 3);
-                
+                fill(...C.collar);
+                rect(7, 12, 2, 3); rect(19, 12, 2, 3);
+
                 // Cinto
-                fill(60, 40, 20);
+                fill(60,40,20);
                 rect(6, 22, 16, 2);
-                
+
                 // Cabeça
-                fill(COLORS.guiSkin);
+                fill(...C.skin);
                 ellipse(14, 6, 14, 14);
-                
-                // Cabelo cacheado (mais detalhado, como na imagem!)
-                fill(COLORS.guiHair);
-                ellipse(10, 2, 8, 6);
-                ellipse(14, 0, 10, 7);
-                ellipse(18, 2, 8, 6);
-                // Cachos extras
-                fill(70, 40, 10);
-                ellipse(12, 1, 4, 3);
-                ellipse(16, 1, 4, 3);
-                
-                // Olhos (expressivos)
+
+                // Cabelo cacheado
+                fill(...C.hair);
+                ellipse(10, 2, 8, 6); ellipse(14, 0, 10, 7); ellipse(18, 2, 8, 6);
+                fill(70,40,10);
+                ellipse(12, 1, 4, 3); ellipse(16, 1, 4, 3);
+
+                // Olhos
                 fill(0);
-                ellipse(11, 5, 2, 2);
-                ellipse(17, 5, 2, 2);
+                ellipse(11, 5, 2, 2); ellipse(17, 5, 2, 2);
                 fill(255);
-                ellipse(11.2, 4.8, 1, 1);
-                ellipse(17.2, 4.8, 1, 1);
-                
-                // Boca (sorriso confiante)
-                stroke(200, 150, 120);
+                ellipse(11.2, 4.8, 1, 1); ellipse(17.2, 4.8, 1, 1);
+
+                // Boca
+                stroke(200,150,120);
                 strokeWeight(1);
                 noFill();
                 arc(14, 9, 6, 4, 0, PI);
                 noStroke();
-                
+
                 // Braços
-                fill(COLORS.guiShirt);
-                rect(0, 12, 5, 8, 1);
-                rect(23, 12, 5, 8, 1);
-                
-                // Mão (polegar para cima na vitória/pulo)
-                fill(COLORS.guiSkin);
-                ellipse(2, 15, 4, 4); // mão esquerda
-                if(this.puloFrame > 0 || gameState === 'vitoria') {
-                    ellipse(27, 20, 4, 4); // 👍
-                } else {
-                    ellipse(27, 15, 4, 4);
-                }
-                
+                fill(...C.shirt);
+                rect(0, 12, 5, 8, 1); rect(23, 12, 5, 8, 1);
+
+                // Mãos
+                fill(...C.skin);
+                ellipse(2, 15, 4, 4);
+                ellipse(27, 15, 4, 4);
+
                 pop();
             }
         }
 
-        // OBSTÁCULOS PIXEL ART (igual imagem - mais detalhes)
+        // ========== OBSTÁCULOS ==========
         class Obstaculo {
             constructor() {
                 this.x = width + 100;
                 this.y = chaoY;
                 this.tipo = floor(random(4));
-                if(this.tipo === 0) { this.w = 12*pixelSize; this.h = 20*pixelSize; } // cone
-                else if(this.tipo === 1) { this.w = 16*pixelSize; this.h = 22*pixelSize; } // lixeira
-                else if(this.tipo === 2) { this.w = 24*pixelSize; this.h = 18*pixelSize; } // caixa
-                else { this.w = 20*pixelSize; this.h = 32*pixelSize; } // morador
+                this.w = this.tipo === 0 ? 12 : this.tipo === 1 ? 16 : this.tipo === 2 ? 24 : 20;
+                this.h = this.tipo === 0 ? 20 : this.tipo === 1 ? 22 : this.tipo === 2 ? 18 : 32;
             }
-            
             update() { this.x -= velocidadeJogo; }
-            
             draw() {
                 push();
                 translate(this.x, this.y + shake);
-                scale(pixelSize);
-                
-                if(this.tipo === 0) { // CONE (com listras)
-                    fill(COLORS.cone);
+                if(this.tipo === 0) { // Cone
+                    fill(...C.cone);
                     triangle(2, 20, 10, 2, 18, 20);
-                    fill(255, 50, 0);
+                    fill(255,50,0);
                     triangle(4, 15, 10, 8, 16, 15);
-                    fill(255, 200, 0);
-                    line(5, 12, 15, 12);
-                }
-                else if(this.tipo === 1) { // LIXEIRA (com tampa)
-                    fill(COLORS.trash);
-                    rect(2, 8, 12, 14, 2);
-                    rect(1, 6, 14, 4, 1);
+                } else if(this.tipo === 1) { // Lixeira
+                    fill(...C.trash);
+                    rect(2, 8, 12, 14, 2); rect(1, 6, 14, 4, 1);
                     fill(255);
                     ellipse(7, 12, 3, 3);
-                    // Lixo interno
-                    fill(100);
-                    rect(4, 15, 8, 5);
-                }
-                else if(this.tipo === 2) { // CAIXA (com etiquetas)
-                    fill(120, 60, 40);
+                } else if(this.tipo === 2) { // Caixa
+                    fill(...C.box);
                     rect(0, 0, 24, 18, 2);
-                    fill(200, 150, 100);
+                    fill(200,150,100);
                     rect(4, 4, 16, 10, 1);
-                    fill(255, 0, 0);
+                    fill(255,0,0);
                     textSize(6);
                     text("CLT", 12, 9);
-                }
-                else { // MORADOR (com expressão triste)
-                    fill(50, 40, 30);
-                    ellipse(10, 8, 16, 20); // corpo
-                    fill(COLORS.guiSkin);
-                    ellipse(10, 4, 10, 10); // rosto
+                } else { // Morador
+                    fill(...C.homeless);
+                    ellipse(10, 8, 16, 20);
+                    fill(...C.skin);
+                    ellipse(10, 4, 10, 10);
                     fill(0);
-                    ellipse(7, 3, 2, 2);
-                    ellipse(13, 3, 2, 2);
-                    fill(255, 200, 150);
-                    arc(10, 7, 6, 4, PI, TWO_PI); // Boca triste
-                    // Barba
-                    fill(30);
-                    rect(8, 8, 4, 3);
+                    ellipse(7, 3, 2, 2); ellipse(13, 3, 2, 2);
+                    fill(255,200,150);
+                    arc(10, 7, 6, 4, PI, TWO_PI);
                 }
                 pop();
             }
         }
 
-        // ITENS PIXEL ART (mais bonitos)
+        // ========== ITENS ==========
         class Item {
             constructor() {
                 this.x = width + random(200, 400);
                 this.y = chaoY - random(60, 120);
-                this.w = 16 * pixelSize;
-                this.h = 16 * pixelSize;
                 this.tipo = random() > 0.5 ? 'dinheiro' : 'controle';
                 this.bounce = 0;
             }
-            update() { 
-                this.x -= velocidadeJogo * 0.7; 
+            update() {
+                this.x -= velocidadeJogo * 0.7;
                 this.bounce = sin(frameCount * 0.1) * 2;
             }
             draw() {
                 push();
                 translate(this.x, this.y + this.bounce + shake);
-                scale(pixelSize);
                 if(this.tipo === 'dinheiro') {
-                    fill(COLORS.money);
+                    fill(...C.money);
                     rect(2, 2, 12, 12, 2);
-                    fill(255, 215, 0);
+                    fill(255,215,0);
                     textSize(10);
                     text("R$", 8, 11);
-                    // Brilho
-                    fill(255, 255, 255, 100);
-                    ellipse(8, 6, 4, 4);
                 } else {
-                    fill(COLORS.controller);
+                    fill(...C.controller);
                     rect(1, 4, 14, 8, 2);
                     fill(255);
-                    ellipse(5, 8, 3, 3);
-                    ellipse(11, 8, 3, 3);
-                    // Botões
-                    fill(255, 0, 0);
-                    ellipse(6, 7, 1.5, 1.5);
-                    fill(0, 255, 0);
-                    ellipse(10, 7, 1.5, 1.5);
+                    ellipse(5, 8, 3, 3); ellipse(11, 8, 3, 3);
                 }
                 pop();
             }
         }
 
-        // NUVENS PARALLAX
+        // ========== NUVENS ==========
         class Nuvem {
             constructor() {
                 this.x = random(width);
@@ -397,7 +327,7 @@
                 if(this.x < -this.size) this.x = width + this.size;
             }
             draw() {
-                fill(255, 255, 255, 180);
+                fill(255,255,255,180);
                 noStroke();
                 ellipse(this.x, this.y, this.size, this.size * 0.6);
                 ellipse(this.x + this.size*0.3, this.y, this.size*0.8, this.size*0.5);
@@ -405,34 +335,26 @@
             }
         }
 
-        // HUD RETRO (com barra de progresso)
+        // ========== HUD ==========
         function drawHUD() {
-            // Fundo HUD
-            fill(0, 0, 0, 200);
+            fill(0,0,0,200);
             rect(20, 20, 280, 80, 12);
-            
-            // Vida (barra)
-            fill(255, 50, 50);
+            fill(255,50,50);
             rect(40, 30, vida * 1.6, 20, 8);
             fill(255);
             textSize(16);
             text(`VIDA ${vida}`, 140, 42);
-            
-            // Dinheiro
-            fill(255, 215, 0);
+            fill(255,215,0);
             text(`R$ ${dinheiro}`, 140, 68);
-            
-            // Fase
-            let faseNome = ['MorumBI', 'ÔNIBUS', 'METRÔ', 'JABAQUARA!'][fase-1];
-            fill(0, 255, 255);
+            fill(0,255,255);
             textSize(20);
-            text(faseNome, 250, 45);
+            text(['MorumBI','ÔNIBUS','METRÔ','JABAQUARA!'][fase-1], 250, 45);
         }
 
         function drawGameOver() {
-            fill(0, 0, 0, 240);
-            rect(0, 0, width, height);
-            fill(255, 100, 100);
+            fill(0,0,0,240);
+            rect(0,0,width,height);
+            fill(255,100,100);
             textSize(60);
             text("GAME OVER", width/2, height/2 - 30);
             fill(255);
@@ -441,9 +363,9 @@
         }
 
         function drawVitoria() {
-            fill(100, 255, 100, 240);
-            rect(0, 0, width, height);
-            fill(255, 215, 0);
+            fill(100,255,100,240);
+            rect(0,0,width,height);
+            fill(255,215,0);
             textSize(50);
             text("LEVEL COMPLETE!", width/2, height/2 - 40);
             fill(255);
@@ -452,60 +374,40 @@
             text("Toque para jogar de novo", width/2, height/2 + 50);
         }
 
-        function gameOver() { 
-            gameState = 'gameover'; 
-            noLoop(); 
-        }
-
-        function vitoria() { 
-            gameState = 'vitoria'; 
-            noLoop(); 
-        }
-
         function keyPressed() {
-            if (key === ' ' || key === 'ArrowUp') {
-                if(gameState === 'running' && canJump) {
-                    gui.vy = -22;
-                    gui.puloFrame = 1;
-                    canJump = false;
-                } else if(gameState !== 'running') {
-                    restart();
-                }
-            }
+            if((key === ' ' || key === 'ArrowUp') && gameState === 'running' && canJump) {
+                gui.vy = -22;
+                canJump = false;
+            } else if(gameState !== 'running') restart();
         }
 
         function touchStarted() {
             if(gameState === 'running' && canJump) {
                 gui.vy = -22;
-                gui.puloFrame = 1;
                 canJump = false;
-            } else if(gameState !== 'running') {
-                restart();
-            }
+            } else if(gameState !== 'running') restart();
             return false;
         }
 
         function restart() {
-            gameState = 'running';
-            vida = 100; dinheiro = 0; fase = 1;
-            velocidadeJogo = 3.5; obstaculos = []; itens = [];
-            canJump = true; shake = 0;
+            gameState = 'running'; vida = 100; dinheiro = 0; fase = 1;
+            velocidadeJogo = 4; obstaculos = []; itens = []; canJump = true; shake = 0;
             gui = new Gui();
             loop();
         }
 
         function windowResized() {
             resizeCanvas(min(1000, windowWidth), min(600, windowHeight));
-            chaoY = height * 0.75;
-            gui.y = chaoY;
+            chaoY = height - 100;
+            gui.y = chaoY - 42;
         }
 
         // Loading
         setTimeout(() => {
-            const loading = document.getElementById('loading');
-            loading.style.transition = 'opacity 0.5s';
-            loading.style.opacity = '0';
-            setTimeout(() => loading.style.display = 'none', 500);
+            const l = document.getElementById('loading');
+            l.style.transition = 'opacity 0.5s';
+            l.style.opacity = '0';
+            setTimeout(() => l.style.display = 'none', 500);
         }, 2000);
     </script>
 </body>
