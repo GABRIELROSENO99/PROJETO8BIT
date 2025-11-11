@@ -5,392 +5,445 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Gui The Kid - Vencendo a CLT</title>
 
-    <!-- ====== CSS RESPONSIVO (LINDO E FUNCIONAL) ====== -->
     <style>
         * { box-sizing: border-box; }
         body {
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(to bottom, #1a1a2e, #16213e);
-            font-family: 'Courier New', monospace, sans-serif;
-            touch-action: none;
-            user-select: none;
+            margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background: linear-gradient(135deg, #2c1810, #1a0d00);
+            font-family: 'Courier New', monospace; touch-action: none; user-select: none;
         }
-
         canvas {
-            display: block;
-            max-width: 100%;
-            max-height: 100%;
-            image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: crisp-edges;
-            box-shadow: 0 0 25px rgba(0, 255, 136, 0.4);
-            border: 4px solid #00ff88;
-            border-radius: 12px;
+            display: block; max-width: 100%; max-height: 100%;
+            image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;
+            box-shadow: 0 0 30px rgba(255,100,0,0.6); border: 6px solid #ff6600; border-radius: 16px;
         }
-
         #loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #00ff88;
-            font-size: 2rem;
-            font-weight: bold;
-            text-align: center;
-            text-shadow: 0 0 15px #00ff88;
-            animation: pulse 1.5s infinite;
-            pointer-events: none;
-            z-index: 200;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: #ffaa00; font-size: 2.2rem; font-weight: bold; text-align: center;
+            text-shadow: 0 0 20px #ff6600; animation: glow 1.2s infinite; pointer-events: none; z-index: 200;
         }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        @keyframes glow {
+            0%,100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
         }
-
-        #sound-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: rgba(0,0,0,0.7);
-            color: #00ff88;
-            border: 2px solid #00ff88;
-            padding: 10px 16px;
-            font-size: 1.3rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 12px;
-            z-index: 100;
-            transition: all 0.3s ease;
-        }
-
-        #sound-btn:hover {
-            background: #00ff88;
-            color: #000;
-            transform: scale(1.1);
-        }
-
         @media (max-width: 600px) {
-            canvas {
-                width: 100vw !important;
-                height: 100vh !important;
-                border-radius: 0;
-                border: none;
-            }
-            #loading { font-size: 1.5rem; }
-            #sound-btn { top: 10px; right: 10px; padding: 8px 12px; font-size: 1.1rem; }
+            canvas { width: 100vw !important; height: 100vh !important; border-radius: 0; border: none; }
+            #loading { font-size: 1.6rem; }
         }
     </style>
 </head>
 <body>
-    <div id="loading">CARREGANDO A JORNADA...</div>
-    <button id="sound-btn" onclick="toggleSound()">Som</button>
+    <div id="loading">CARREGANDO PIXEL ART...</div>
 
-    <!-- p5.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
-
-    <!-- ====== JOGO COMPLETO (EMBUTIDO NO HTML) ====== -->
     <script>
         // ===================================
-        // GUI THE KID: VENCENDO A CLT
-        // Versão Final - 100% Funcional
+        // GUI THE KID - PIXEL ART PERFEITO
+        // Estilo idêntico à imagem fornecida
         // ===================================
 
-        let gui, chaoY, obstaculos = [], itens = [];
-        let velocidadeJogo = 5;
-        let gameState = 'running';
-        let vida = 100, dinheiro = 0, fase = 1;
-        let fundoX = 0, fundoVel = 1;
-        let bgMorumbi, bgOnibus, bgMetro, bgJabaquara;
+        let gui, chaoY, obstaculos = [], itens = [], nuvens = [];
+        let velocidadeJogo = 3.5, gameState = 'running', vida = 100, dinheiro = 0, fase = 1;
+        let score = 0, cameraX = 0, shake = 0;
+        let pixelSize = 4; // Tamanho dos pixels para pixel art nítido
 
-        function preload() {
-            // Fundos em camadas (parallax)
-            bgMorumbi = createGraphics(800, 450);
-            bgOnibus = createGraphics(800, 450);
-            bgMetro = createGraphics(800, 450);
-            bgJabaquara = createGraphics(800, 450);
-
-            // Morumbi
-            bgMorumbi.background(100, 50, 150);
-            bgMorumbi.fill(70, 30, 120);
-            for (let i = 0; i < 10; i++) bgMorumbi.rect(i*90, 100, 70, 350);
-
-            // Ônibus
-            bgOnibus.background(50, 100, 180);
-            bgOnibus.fill(200); bgOnibus.rect(100, 200, 600, 150);
-
-            // Metrô
-            bgMetro.background(20, 20, 50);
-            bgMetro.fill(150); bgMetro.rect(0, 250, 800, 100);
-
-            // Jabaquara
-            bgJabaquara.background(255, 200, 100);
-            bgJabaquara.fill(255, 150, 0);
-            bgJabaquara.textSize(60);
-            bgJabaquara.textAlign(CENTER, CENTER);
-            bgJabaquara.text("JABAQUARA!", 400, 225);
-        }
+        // Paleta de cores da imagem
+        const COLORS = {
+            skyDay: [146, 191, 226],
+            skyNight: [86, 101, 155],
+            building1: [77, 57, 122],
+            building2: [120, 85, 173],
+            ground: [79, 59, 44],
+            guiShirt: [200, 220, 255],
+            guiPants: [100, 140, 220],
+            guiHair: [90, 60, 30],
+            guiSkin: [255, 200, 150],
+            cone: [255, 140, 0],
+            trash: [90, 90, 90],
+            homeless: [60, 50, 40],
+            money: [255, 230, 100],
+            controller: [50, 180, 255]
+        };
 
         function setup() {
-            createCanvas(min(800, windowWidth), min(450, windowHeight));
+            createCanvas(min(1000, windowWidth), min(600, windowHeight));
+            pixelDensity(1);
             textAlign(CENTER, CENTER);
-            chaoY = height - 70;
-            gui = new Player(100, chaoY);
-            obstaculos.push(new Obstacle());
-            itens.push(new Item());
+            chaoY = height * 0.75;
+            
+            gui = new Gui();
+            for(let i=0; i<5; i++) nuvens.push(new Nuvem());
         }
 
         function draw() {
-            // Fundo com parallax
-            image(getFundoAtual(), fundoX, 0);
-            image(getFundoAtual(), fundoX + width, 0);
-            fundoX -= fundoVel;
-            if (fundoX <= -width) fundoX = 0;
-
-            if (gameState === 'running') {
-                gerarElementos();
-                atualizarObstaculos();
-                atualizarItens();
-                gui.update();
-                gui.draw();
-                drawChao();
-                drawHUD();
-                checarFase();
-            } else if (gameState === 'gameover') {
-                drawGameOverScreen();
-            } else if (gameState === 'vitoria') {
-                drawVitoriaScreen();
+            // Céu gradiente pôr do sol (igual à imagem)
+            for(let y=0; y<height; y++) {
+                let inter = map(y, 0, height*0.6, 0, 1);
+                let c = lerpColor(color(200,120,80), color(50,30,60), inter);
+                stroke(c); line(0, y, width, y);
             }
+
+            if(gameState === 'running') {
+                updateGame();
+            } else if(gameState === 'gameover') {
+                drawGameOver();
+            } else if(gameState === 'vitoria') {
+                drawVitoria();
+            }
+            
+            drawHUD();
         }
 
-        function getFundoAtual() {
-            if (fase === 1) return bgMorumbi;
-            if (fase === 2) return bgOnibus;
-            if (fase === 3) return bgMetro;
-            return bgJabaquara;
-        }
-
-        function gerarElementos() {
-            if (frameCount % 90 === 0) obstaculos.push(new Obstacle());
-            if (frameCount % 140 === 0) itens.push(new Item());
-        }
-
-        function atualizarObstaculos() {
-            for (let i = obstaculos.length - 1; i >= 0; i--) {
-                let o = obstaculos[i];
-                o.update();
-                o.draw();
-                if (gui.hits(o)) {
-                    vida -= 20;
+        function updateGame() {
+            cameraX += velocidadeJogo;
+            score += 1;
+            
+            // Shake ao pular
+            shake *= 0.9;
+            
+            // Spawn elementos
+            if(frameCount % 120 === 0) obstaculos.push(new Obstaculo());
+            if(frameCount % 180 === 0) itens.push(new Item());
+            
+            // Atualizar nuvens (parallax)
+            for(let nuvem of nuvens) nuvem.update();
+            
+            // Atualizar obstáculos
+            for(let i=obstaculos.length-1; i>=0; i--) {
+                let obs = obstaculos[i];
+                obs.update();
+                if(gui.colide(obs)) {
+                    vida -= 25;
                     obstaculos.splice(i, 1);
-                    if (vida <= 0) gameOver();
+                    shake = 8;
+                    if(vida <= 0) gameOver();
                 }
-                if (o.x < -100) obstaculos.splice(i, 1);
+                if(obs.x < -100) obstaculos.splice(i, 1);
             }
-        }
-
-        function atualizarItens() {
-            for (let i = itens.length - 1; i >= 0; i--) {
+            
+            // Atualizar itens
+            for(let i=itens.length-1; i>=0; i--) {
                 let item = itens[i];
                 item.update();
-                item.draw();
-                if (gui.collect(item)) {
-                    if (item.tipo === 'dinheiro') dinheiro += 10;
-                    else vida = min(100, vida + 30);
+                if(gui.pega(item)) {
+                    if(item.tipo === 'dinheiro') dinheiro += 10;
+                    else vida = min(100, vida + 40);
                     itens.splice(i, 1);
                 }
-                if (item.x < -100) itens.splice(i, 1);
+                if(item.x < -100) itens.splice(i, 1);
             }
+            
+            // Fases
+            if(dinheiro >= 30 && fase === 1) { fase = 2; velocidadeJogo = 4; }
+            if(dinheiro >= 70 && fase === 2) { fase = 3; velocidadeJogo = 4.5; }
+            if(dinheiro >= 120 && fase === 3) vitoria();
+            
+            gui.update();
         }
 
-        function checarFase() {
-            if (dinheiro >= 30 && fase === 1) { fase = 2; velocidadeJogo = 6; fundoVel = 1.5; }
-            if (dinheiro >= 60 && fase === 2) { fase = 3; velocidadeJogo = 7; fundoVel = 2; }
-            if (dinheiro >= 90 && fase === 3) { fase = 4; vitoria(); }
-        }
-
-        function drawChao() {
-            fill(80); 
-            rect(0, chaoY, width, height - chaoY);
-            stroke(200); strokeWeight(3); 
-            line(0, chaoY, width, chaoY); 
-            noStroke();
-        }
-
-        function drawHUD() {
-            fill(0, 0, 0, 180); 
-            rect(10, 10, 240, 70, 10);
-            fill(0, 255, 0); textSize(18); 
-            text(`Vida: ${vida}`, 80, 35);
-            fill(255, 215, 0); 
-            text(`R$: ${dinheiro}`, 80, 60);
-            fill(255); textSize(16); 
-            text(`Fase: ${['Morumbi', 'Ônibus', 'Metrô', 'Jabaquara'][fase-1]}`, 180, 35);
-        }
-
-        function gameOver() { 
-            gameState = 'gameover'; 
-            noLoop(); 
-        }
-
-        function vitoria() { 
-            gameState = 'vitoria'; 
-            noLoop(); 
-        }
-
-        function drawGameOverScreen() {
-            fill(255, 0, 0, 220); 
-            rect(0, 0, width, height);
-            fill(255); textSize(50); 
-            text("FALHOU NA CLT!", width/2, height/2 - 40);
-            textSize(24); 
-            text("Toque ou ESPAÇO para recomeçar", width/2, height/2 + 20);
-        }
-
-        function drawVitoriaScreen() {
-            fill(0, 255, 0, 220); 
-            rect(0, 0, width, height);
-            fill(255, 215, 0); textSize(50); 
-            text("CHEGOU EM CASA!", width/2, height/2 - 40);
-            textSize(24); fill(255); 
-            text("R$ " + dinheiro + " no bolso!", width/2, height/2 + 10);
-            text("Toque para jogar de novo", width/2, height/2 + 50);
-        }
-
-        function restartGame() {
-            gameState = 'running'; 
-            vida = 100; dinheiro = 0; fase = 1;
-            velocidadeJogo = 5; fundoVel = 1;
-            obstaculos = []; itens = []; fundoX = 0;
-            gui = new Player(100, chaoY);
-            loop();
-        }
-
-        function keyPressed() {
-            if (gameState === 'running' && (key === ' ' || key === 'ArrowUp')) gui.jump();
-            else if (gameState !== 'running') restartGame();
-        }
-
-        function touchStarted() {
-            if (gameState === 'running') gui.jump();
-            else if (gameState !== 'running') restartGame();
-            return false;
-        }
-
-        function windowResized() {
-            resizeCanvas(min(800, windowWidth), min(450, windowHeight));
-            chaoY = height - 70;
-            gui.y = chaoY;
-        }
-
-        // ====== CLASSES ======
-        class Player {
-            constructor(x, y) {
-                this.x = x; this.y = y; 
-                this.w = 36; this.h = 48;
-                this.velY = 0; this.gravidade = 1.1; this.forcaPulo = -18;
+        // PIXEL ART GUI (IDÊNTICO À IMAGEM)
+        class Gui {
+            constructor() {
+                this.x = 120;
+                this.y = chaoY;
+                this.vy = 0;
+                this.w = 28 * pixelSize;
+                this.h = 40 * pixelSize;
+                this.frame = 0;
+                this.puloFrame = 0;
             }
-            jump() { 
-                if (this.y >= chaoY - 5) this.velY = this.forcaPulo; 
-            }
+            
             update() {
-                this.velY += this.gravidade; 
-                this.y += this.velY;
-                if (this.y > chaoY) { 
-                    this.y = chaoY; 
-                    this.velY = 0; 
+                this.frame += 0.2;
+                
+                // Física suave
+                this.vy += 0.8;
+                this.y += this.vy;
+                if(this.y > chaoY) {
+                    this.y = chaoY;
+                    this.vy = 0;
+                    this.puloFrame = 0;
+                }
+                
+                if(keyIsDown(32) || touches.length > 0) {
+                    if(this.y >= chaoY - 5) {
+                        this.vy = -22;
+                        this.puloFrame = 1;
+                    }
                 }
             }
-            hits(o) {
-                return this.x < o.x + o.w && 
-                       this.x + this.w > o.x &&
-                       this.y - this.h < o.y && 
-                       this.y > o.y - o.h;
+            
+            colide(obs) {
+                return this.x < obs.x + obs.w && this.x + this.w > obs.x &&
+                       this.y < obs.y + obs.h && this.y + this.h > obs.y;
             }
-            collect(i) {
-                return dist(this.x + this.w/2, this.y - this.h/2, i.x + i.w/2, i.y - i.h/2) < 40;
+            
+            pega(item) {
+                return dist(this.x + this.w/2, this.y + this.h/2, item.x, item.y) < 40;
             }
+            
             draw() {
                 push();
-                // Mochila
-                fill(139, 69, 19); 
-                rect(this.x + 8, this.y - this.h + 10, this.w - 16, 20);
+                translate(this.x, this.y + shake);
+                scale(pixelSize);
+                
+                // Pernas (animação walk cycle)
+                let legOffset = sin(this.frame) * 3;
+                fill(COLORS.guiPants);
+                // Perna esquerda
+                rect(6, 26, 5, 14, 1);
+                rect(6+legOffset, 34, 5, 6, 1);
+                // Perna direita
+                rect(17, 26, 5, 14, 1);
+                rect(17-legOffset, 34, 5, 6, 1);
+                
+                // Sapatos
+                fill(40);
+                rect(6, 38, 6, 3);
+                rect(17, 38, 6, 3);
+                
+                // Calça
+                fill(COLORS.guiPants);
+                rect(6, 22, 16, 6, 2);
+                
+                // Camisa (branca com colarinho azul)
+                fill(COLORS.guiShirt);
+                rect(4, 10, 20, 14, 2);
+                fill(100, 150, 220);
+                rect(7, 12, 2, 3); // colarinho
+                rect(19, 12, 2, 3);
+                
+                // Cinto
+                fill(60, 40, 20);
+                rect(6, 22, 16, 2);
+                
                 // Cabeça
-                fill(255, 220, 177); 
-                ellipse(this.x + this.w/2, this.y - this.h + 15, 28);
-                // Cabelo
-                fill(50); 
-                arc(this.x + this.w/2, this.y - this.h + 8, 30, 25, PI, 0);
-                // Corpo (camisa branca)
-                fill(255); 
-                rect(this.x + 5, this.y - this.h + 25, this.w - 10, 25);
-                // Shorts
-                fill(0, 100, 200); 
-                rect(this.x + 5, this.y - 18, this.w - 10, 18);
+                fill(COLORS.guiSkin);
+                ellipse(14, 6, 14, 14);
+                
+                // Cabelo cacheado (igual imagem!)
+                fill(COLORS.guiHair);
+                ellipse(10, 2, 8, 6);
+                ellipse(14, 0, 10, 7);
+                ellipse(18, 2, 8, 6);
+                
+                // Olhos
+                fill(0);
+                ellipse(11, 5, 2, 2);
+                ellipse(17, 5, 2, 2);
+                fill(255);
+                ellipse(11.2, 4.8, 1, 1);
+                ellipse(17.2, 4.8, 1, 1);
+                
+                // Boca
+                stroke(200, 150, 120);
+                strokeWeight(1);
+                noFill();
+                arc(14, 9, 6, 4, 0, PI);
+                noStroke();
+                
+                // Braços
+                fill(COLORS.guiShirt);
+                rect(0, 12, 5, 8, 1);
+                rect(23, 12, 5, 8, 1);
+                
+                // Mão (polegar para cima quando pular)
+                fill(COLORS.guiSkin);
+                if(this.puloFrame > 0) {
+                    ellipse(2, 15, 4, 4); // mão esquerda
+                    ellipse(27, 20, 4, 4); // mão direita (👍)
+                } else {
+                    ellipse(2, 15, 4, 4);
+                    ellipse(27, 15, 4, 4);
+                }
+                
                 pop();
             }
         }
 
-        class Obstacle {
+        // OBSTÁCULOS PIXEL ART (igual imagem)
+        class Obstaculo {
             constructor() {
-                this.x = width + 50;
-                let tipos = [
-                    {w:25,h:35,c:color(255,100,0)},  // cone
-                    {w:40,h:50,c:color(100)},        // lixeira
-                    {w:60,h:20,c:color(150,0,0)},    // caixa
-                    {w:35,h:60,c:color(50,50,50)}    // morador
-                ];
-                let t = random(tipos);
-                this.w = t.w; this.h = t.h; this.type = t; this.y = chaoY;
+                this.x = width + 100;
+                this.y = chaoY;
+                this.tipo = floor(random(4));
+                if(this.tipo === 0) { this.w = 12*pixelSize; this.h = 20*pixelSize; } // cone
+                else if(this.tipo === 1) { this.w = 16*pixelSize; this.h = 22*pixelSize; } // lixeira
+                else if(this.tipo === 2) { this.w = 24*pixelSize; this.h = 18*pixelSize; } // caixa
+                else { this.w = 20*pixelSize; this.h = 32*pixelSize; } // morador
             }
+            
             update() { this.x -= velocidadeJogo; }
+            
             draw() {
-                fill(this.type.c); 
-                rect(this.x, this.y - this.h, this.w, this.h);
-                if (this.type.c === color(50,50,50)) {
-                    fill(255,200,150); 
-                    ellipse(this.x + this.w/2, this.y - this.h + 15, 20);
+                push();
+                translate(this.x, this.y + shake);
+                scale(pixelSize);
+                
+                if(this.tipo === 0) { // CONE
+                    fill(COLORS.cone);
+                    triangle(2, 20, 10, 2, 18, 20);
+                    fill(255, 50, 0);
+                    triangle(4, 15, 10, 8, 16, 15);
                 }
+                else if(this.tipo === 1) { // LIXEIRA
+                    fill(COLORS.trash);
+                    rect(2, 8, 12, 14, 2);
+                    rect(1, 6, 14, 4, 1);
+                    fill(255);
+                    ellipse(7, 12, 3, 3);
+                }
+                else if(this.tipo === 2) { // CAIXA
+                    fill(120, 60, 40);
+                    rect(0, 0, 24, 18, 2);
+                    fill(200, 150, 100);
+                    rect(4, 4, 16, 10, 1);
+                }
+                else { // MORADOR
+                    fill(50, 40, 30);
+                    ellipse(10, 8, 16, 20); // corpo
+                    fill(COLORS.guiSkin);
+                    ellipse(10, 4, 10, 10); // rosto
+                    fill(0);
+                    ellipse(7, 3, 2, 2);
+                    ellipse(13, 3, 2, 2);
+                    fill(255, 200, 150);
+                    arc(10, 7, 6, 4, 0, PI);
+                }
+                pop();
             }
         }
 
+        // ITENS PIXEL ART
         class Item {
             constructor() {
-                this.x = width + random(100, 300);
-                this.y = random(chaoY - 100, chaoY - 30);
-                this.w = 30; this.h = 30;
-                this.tipo = random(['dinheiro', 'controle']);
+                this.x = width + random(200, 400);
+                this.y = chaoY - random(60, 120);
+                this.w = 16 * pixelSize;
+                this.h = 16 * pixelSize;
+                this.tipo = random() > 0.5 ? 'dinheiro' : 'controle';
             }
-            update() { this.x -= velocidadeJogo * 0.8; }
+            update() { this.x -= velocidadeJogo * 0.7; }
             draw() {
-                if (this.tipo === 'dinheiro') {
-                    fill(255, 215, 0); textSize(24); 
-                    text("R$", this.x + 15, this.y + 5);
+                push();
+                translate(this.x, this.y);
+                scale(pixelSize);
+                if(this.tipo === 'dinheiro') {
+                    fill(COLORS.money);
+                    rect(2, 2, 12, 12, 2);
+                    fill(255, 215, 0);
+                    textSize(10);
+                    textAlign(CENTER);
+                    text("R$", 8, 11);
                 } else {
-                    fill(0, 200, 255); 
-                    rect(this.x + 5, this.y, 20, 25, 5);
-                    fill(255); 
-                    circle(this.x + 12, this.y + 12, 8);
+                    fill(COLORS.controller);
+                    rect(1, 4, 14, 8, 2);
+                    fill(255);
+                    ellipse(5, 8, 3, 3);
+                    ellipse(11, 8, 3, 3);
                 }
+                pop();
             }
         }
 
-        // Efeito de loading
-        setTimeout(() => {
-            const loading = document.getElementById('loading');
-            loading.style.transition = 'opacity 0.5s';
-            loading.style.opacity = '0';
-            setTimeout(() => loading.style.display = 'none', 500);
-        }, 1800);
-
-        function toggleSound() {
-            alert("Sistema de som em desenvolvimento!");
+        // NUVE NS PARALLAX
+        class Nuvem {
+            constructor() {
+                this.x = random(width);
+                this.y = random(50, 200);
+                this.size = random(40, 80);
+                this.speed = random(0.2, 0.5);
+            }
+            update() {
+                this.x -= this.speed;
+                if(this.x < -this.size) this.x = width + this.size;
+            }
+            draw() {
+                fill(255, 255, 255, 180);
+                noStroke();
+                ellipse(this.x, this.y, this.size, this.size * 0.6);
+                ellipse(this.x + this.size*0.3, this.y, this.size*0.8, this.size*0.5);
+                ellipse(this.x - this.size*0.3, this.y, this.size*0.8, this.size*0.5);
+            }
         }
+
+        // HUD RETRO
+        function drawHUD() {
+            // Fundo HUD
+            fill(0, 0, 0, 200);
+            rect(20, 20, 280, 80, 12);
+            
+            // Vida
+            fill(255, 50, 50);
+            rect(40, 30, vida * 1.6, 20, 8);
+            fill(255);
+            textSize(16);
+            text(`VIDA ${vida}`, 140, 42);
+            
+            // Dinheiro
+            fill(255, 215, 0);
+            text(`R$ ${dinheiro}`, 140, 68);
+            
+            // Fase
+            let faseNome = ['MorumBI', 'ÔNIBUS', 'METRÔ', 'JABAQUARA!'][fase-1];
+            fill(0, 255, 255);
+            textSize(20);
+            text(faseNome, 250, 45);
+        }
+
+        function drawGameOver() {
+            fill(0, 0, 0, 240);
+            rect(0, 0, width, height);
+            fill(255, 100, 100);
+            textSize(60);
+            text("GAME OVER", width/2, height/2 - 30);
+            fill(255);
+            textSize(24);
+            text("ESPAÇO ou TOQUE", width/2, height/2 + 30);
+        }
+
+        function drawVitoria() {
+            fill(100, 255, 100, 240);
+            rect(0, 0, width, height);
+            fill(255, 215, 0);
+            textSize(50);
+            text("LEVEL COMPLETE!", width/2, height/2 - 40);
+            fill(255);
+            textSize(28);
+            text(`JABAQUARA! R$ ${dinheiro}`, width/2, height/2 + 20);
+        }
+
+        function keyPressed() {
+            if(key === ' ') {
+                if(gameState === 'running') gui.vy = -22;
+                else restart();
+            }
+        }
+
+        function touchStarted() {
+            if(gameState === 'running') gui.vy = -22;
+            else restart();
+            return false;
+        }
+
+        function restart() {
+            gameState = 'running';
+            vida = 100; dinheiro = 0; fase = 1;
+            velocidadeJogo = 3.5; obstaculos = []; itens = [];
+            gui = new Gui();
+            loop();
+        }
+
+        function windowResized() {
+            resizeCanvas(min(1000, windowWidth), min(600, windowHeight));
+            chaoY = height * 0.75;
+        }
+
+        // Loading
+        setTimeout(() => {
+            document.getElementById('loading').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading').remove(), 500);
+        }, 2000);
     </script>
 </body>
 </html>
