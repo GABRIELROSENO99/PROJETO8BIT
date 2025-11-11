@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Gui The Kid - Vencendo a CLT</title>
 
-    <!-- ====== CSS RESPONSIVO (CORRIGIDO) ====== -->
+    <!-- ====== CSS RESPONSIVO (LINDO E FUNCIONAL) ====== -->
     <style>
         * { box-sizing: border-box; }
         body {
@@ -63,4 +63,334 @@
             padding: 10px 16px;
             font-size: 1.3rem;
             font-weight: bold;
-            cursor
+            cursor: pointer;
+            border-radius: 12px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        #sound-btn:hover {
+            background: #00ff88;
+            color: #000;
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 600px) {
+            canvas {
+                width: 100vw !important;
+                height: 100vh !important;
+                border-radius: 0;
+                border: none;
+            }
+            #loading { font-size: 1.5rem; }
+            #sound-btn { top: 10px; right: 10px; padding: 8px 12px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">CARREGANDO A JORNADA...</div>
+    <button id="sound-btn" onclick="toggleSound()">Som</button>
+
+    <!-- p5.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+
+    <!-- ====== JOGO COMPLETO (EMBUTIDO NO HTML) ====== -->
+    <script>
+        // ===================================
+        // GUI THE KID: VENCENDO A CLT
+        // Versão Final - 100% Funcional
+        // ===================================
+
+        let gui, chaoY, obstaculos = [], itens = [];
+        let velocidadeJogo = 5;
+        let gameState = 'running';
+        let vida = 100, dinheiro = 0, fase = 1;
+        let fundoX = 0, fundoVel = 1;
+        let bgMorumbi, bgOnibus, bgMetro, bgJabaquara;
+
+        function preload() {
+            // Fundos em camadas (parallax)
+            bgMorumbi = createGraphics(800, 450);
+            bgOnibus = createGraphics(800, 450);
+            bgMetro = createGraphics(800, 450);
+            bgJabaquara = createGraphics(800, 450);
+
+            // Morumbi
+            bgMorumbi.background(100, 50, 150);
+            bgMorumbi.fill(70, 30, 120);
+            for (let i = 0; i < 10; i++) bgMorumbi.rect(i*90, 100, 70, 350);
+
+            // Ônibus
+            bgOnibus.background(50, 100, 180);
+            bgOnibus.fill(200); bgOnibus.rect(100, 200, 600, 150);
+
+            // Metrô
+            bgMetro.background(20, 20, 50);
+            bgMetro.fill(150); bgMetro.rect(0, 250, 800, 100);
+
+            // Jabaquara
+            bgJabaquara.background(255, 200, 100);
+            bgJabaquara.fill(255, 150, 0);
+            bgJabaquara.textSize(60);
+            bgJabaquara.textAlign(CENTER, CENTER);
+            bgJabaquara.text("JABAQUARA!", 400, 225);
+        }
+
+        function setup() {
+            createCanvas(min(800, windowWidth), min(450, windowHeight));
+            textAlign(CENTER, CENTER);
+            chaoY = height - 70;
+            gui = new Player(100, chaoY);
+            obstaculos.push(new Obstacle());
+            itens.push(new Item());
+        }
+
+        function draw() {
+            // Fundo com parallax
+            image(getFundoAtual(), fundoX, 0);
+            image(getFundoAtual(), fundoX + width, 0);
+            fundoX -= fundoVel;
+            if (fundoX <= -width) fundoX = 0;
+
+            if (gameState === 'running') {
+                gerarElementos();
+                atualizarObstaculos();
+                atualizarItens();
+                gui.update();
+                gui.draw();
+                drawChao();
+                drawHUD();
+                checarFase();
+            } else if (gameState === 'gameover') {
+                drawGameOverScreen();
+            } else if (gameState === 'vitoria') {
+                drawVitoriaScreen();
+            }
+        }
+
+        function getFundoAtual() {
+            if (fase === 1) return bgMorumbi;
+            if (fase === 2) return bgOnibus;
+            if (fase === 3) return bgMetro;
+            return bgJabaquara;
+        }
+
+        function gerarElementos() {
+            if (frameCount % 90 === 0) obstaculos.push(new Obstacle());
+            if (frameCount % 140 === 0) itens.push(new Item());
+        }
+
+        function atualizarObstaculos() {
+            for (let i = obstaculos.length - 1; i >= 0; i--) {
+                let o = obstaculos[i];
+                o.update();
+                o.draw();
+                if (gui.hits(o)) {
+                    vida -= 20;
+                    obstaculos.splice(i, 1);
+                    if (vida <= 0) gameOver();
+                }
+                if (o.x < -100) obstaculos.splice(i, 1);
+            }
+        }
+
+        function atualizarItens() {
+            for (let i = itens.length - 1; i >= 0; i--) {
+                let item = itens[i];
+                item.update();
+                item.draw();
+                if (gui.collect(item)) {
+                    if (item.tipo === 'dinheiro') dinheiro += 10;
+                    else vida = min(100, vida + 30);
+                    itens.splice(i, 1);
+                }
+                if (item.x < -100) itens.splice(i, 1);
+            }
+        }
+
+        function checarFase() {
+            if (dinheiro >= 30 && fase === 1) { fase = 2; velocidadeJogo = 6; fundoVel = 1.5; }
+            if (dinheiro >= 60 && fase === 2) { fase = 3; velocidadeJogo = 7; fundoVel = 2; }
+            if (dinheiro >= 90 && fase === 3) { fase = 4; vitoria(); }
+        }
+
+        function drawChao() {
+            fill(80); 
+            rect(0, chaoY, width, height - chaoY);
+            stroke(200); strokeWeight(3); 
+            line(0, chaoY, width, chaoY); 
+            noStroke();
+        }
+
+        function drawHUD() {
+            fill(0, 0, 0, 180); 
+            rect(10, 10, 240, 70, 10);
+            fill(0, 255, 0); textSize(18); 
+            text(`Vida: ${vida}`, 80, 35);
+            fill(255, 215, 0); 
+            text(`R$: ${dinheiro}`, 80, 60);
+            fill(255); textSize(16); 
+            text(`Fase: ${['Morumbi', 'Ônibus', 'Metrô', 'Jabaquara'][fase-1]}`, 180, 35);
+        }
+
+        function gameOver() { 
+            gameState = 'gameover'; 
+            noLoop(); 
+        }
+
+        function vitoria() { 
+            gameState = 'vitoria'; 
+            noLoop(); 
+        }
+
+        function drawGameOverScreen() {
+            fill(255, 0, 0, 220); 
+            rect(0, 0, width, height);
+            fill(255); textSize(50); 
+            text("FALHOU NA CLT!", width/2, height/2 - 40);
+            textSize(24); 
+            text("Toque ou ESPAÇO para recomeçar", width/2, height/2 + 20);
+        }
+
+        function drawVitoriaScreen() {
+            fill(0, 255, 0, 220); 
+            rect(0, 0, width, height);
+            fill(255, 215, 0); textSize(50); 
+            text("CHEGOU EM CASA!", width/2, height/2 - 40);
+            textSize(24); fill(255); 
+            text("R$ " + dinheiro + " no bolso!", width/2, height/2 + 10);
+            text("Toque para jogar de novo", width/2, height/2 + 50);
+        }
+
+        function restartGame() {
+            gameState = 'running'; 
+            vida = 100; dinheiro = 0; fase = 1;
+            velocidadeJogo = 5; fundoVel = 1;
+            obstaculos = []; itens = []; fundoX = 0;
+            gui = new Player(100, chaoY);
+            loop();
+        }
+
+        function keyPressed() {
+            if (gameState === 'running' && (key === ' ' || key === 'ArrowUp')) gui.jump();
+            else if (gameState !== 'running') restartGame();
+        }
+
+        function touchStarted() {
+            if (gameState === 'running') gui.jump();
+            else if (gameState !== 'running') restartGame();
+            return false;
+        }
+
+        function windowResized() {
+            resizeCanvas(min(800, windowWidth), min(450, windowHeight));
+            chaoY = height - 70;
+            gui.y = chaoY;
+        }
+
+        // ====== CLASSES ======
+        class Player {
+            constructor(x, y) {
+                this.x = x; this.y = y; 
+                this.w = 36; this.h = 48;
+                this.velY = 0; this.gravidade = 1.1; this.forcaPulo = -18;
+            }
+            jump() { 
+                if (this.y >= chaoY - 5) this.velY = this.forcaPulo; 
+            }
+            update() {
+                this.velY += this.gravidade; 
+                this.y += this.velY;
+                if (this.y > chaoY) { 
+                    this.y = chaoY; 
+                    this.velY = 0; 
+                }
+            }
+            hits(o) {
+                return this.x < o.x + o.w && 
+                       this.x + this.w > o.x &&
+                       this.y - this.h < o.y && 
+                       this.y > o.y - o.h;
+            }
+            collect(i) {
+                return dist(this.x + this.w/2, this.y - this.h/2, i.x + i.w/2, i.y - i.h/2) < 40;
+            }
+            draw() {
+                push();
+                // Mochila
+                fill(139, 69, 19); 
+                rect(this.x + 8, this.y - this.h + 10, this.w - 16, 20);
+                // Cabeça
+                fill(255, 220, 177); 
+                ellipse(this.x + this.w/2, this.y - this.h + 15, 28);
+                // Cabelo
+                fill(50); 
+                arc(this.x + this.w/2, this.y - this.h + 8, 30, 25, PI, 0);
+                // Corpo (camisa branca)
+                fill(255); 
+                rect(this.x + 5, this.y - this.h + 25, this.w - 10, 25);
+                // Shorts
+                fill(0, 100, 200); 
+                rect(this.x + 5, this.y - 18, this.w - 10, 18);
+                pop();
+            }
+        }
+
+        class Obstacle {
+            constructor() {
+                this.x = width + 50;
+                let tipos = [
+                    {w:25,h:35,c:color(255,100,0)},  // cone
+                    {w:40,h:50,c:color(100)},        // lixeira
+                    {w:60,h:20,c:color(150,0,0)},    // caixa
+                    {w:35,h:60,c:color(50,50,50)}    // morador
+                ];
+                let t = random(tipos);
+                this.w = t.w; this.h = t.h; this.type = t; this.y = chaoY;
+            }
+            update() { this.x -= velocidadeJogo; }
+            draw() {
+                fill(this.type.c); 
+                rect(this.x, this.y - this.h, this.w, this.h);
+                if (this.type.c === color(50,50,50)) {
+                    fill(255,200,150); 
+                    ellipse(this.x + this.w/2, this.y - this.h + 15, 20);
+                }
+            }
+        }
+
+        class Item {
+            constructor() {
+                this.x = width + random(100, 300);
+                this.y = random(chaoY - 100, chaoY - 30);
+                this.w = 30; this.h = 30;
+                this.tipo = random(['dinheiro', 'controle']);
+            }
+            update() { this.x -= velocidadeJogo * 0.8; }
+            draw() {
+                if (this.tipo === 'dinheiro') {
+                    fill(255, 215, 0); textSize(24); 
+                    text("R$", this.x + 15, this.y + 5);
+                } else {
+                    fill(0, 200, 255); 
+                    rect(this.x + 5, this.y, 20, 25, 5);
+                    fill(255); 
+                    circle(this.x + 12, this.y + 12, 8);
+                }
+            }
+        }
+
+        // Efeito de loading
+        setTimeout(() => {
+            const loading = document.getElementById('loading');
+            loading.style.transition = 'opacity 0.5s';
+            loading.style.opacity = '0';
+            setTimeout(() => loading.style.display = 'none', 500);
+        }, 1800);
+
+        function toggleSound() {
+            alert("Sistema de som em desenvolvimento!");
+        }
+    </script>
+</body>
+</html>
