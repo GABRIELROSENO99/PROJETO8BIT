@@ -1,0 +1,243 @@
+// ===================================
+// GUI THE KID: VENCENDO A CLT (DEMO)
+// Versão 2.0: Jogador e Obstáculos
+// ===================================
+
+let gui;          // O jogador (Gui)
+let chaoY;        // Posição Y do chão
+let obstaculos = []; // Array para guardar os obstáculos
+let velocidadeJogo = 5;
+let gameState = 'running';
+
+function setup() {
+    // Canvas que cabe bem no computador e celular
+    createCanvas(min(800, windowWidth), min(450, windowHeight)); 
+    
+    // Configurações iniciais
+    textAlign(CENTER);
+    chaoY = height - 50; 
+
+    // Cria o personagem (Gui)
+    gui = new Player(50, chaoY);
+    
+    // Inicializa o primeiro obstáculo
+    obstaculos.push(new Obstacle());
+}
+
+function draw() {
+    background(50, 150, 200); // Fundo azul (Céu)
+    
+    if (gameState === 'running') {
+        
+        // --- 1. Lógica do Jogo ---
+        
+        // Gera novos obstáculos em um intervalo
+        if (frameCount % 120 === 0) { // Cria um obstáculo a cada 2 segundos (120 frames)
+            obstaculos.push(new Obstacle());
+        }
+
+        // Atualiza e verifica colisões
+        for (let i = obstaculos.length - 1; i >= 0; i--) {
+            let obs = obstaculos[i];
+            obs.update();
+            obs.draw();
+
+            if (gui.hits(obs)) {
+                gameOver();
+            }
+
+            // Remove obstáculos que saíram da tela para economizar memória
+            if (obs.x < -obs.w) {
+                obstaculos.splice(i, 1);
+            }
+        }
+
+        // Atualiza e desenha o Gui
+        gui.update();
+        gui.draw();
+        
+        // Desenha o chão
+        drawChao();
+        
+    } else if (gameState === 'gameover') {
+        drawGameOverScreen();
+    }
+}
+
+
+// ===================================
+// LÓGICA DO JOGO E INPUT
+// ===================================
+
+function gameOver() {
+    gameState = 'gameover';
+    noLoop(); // Para o loop de desenho
+}
+
+function restartGame() {
+    // Reinicia as variáveis
+    gameState = 'running';
+    obstaculos = [];
+    gui = new Player(50, chaoY);
+    velocidadeJogo = 5;
+    loop(); // Reinicia o loop de desenho
+}
+
+// Garante que o jogo se ajuste ao celular
+function windowResized() {
+    resizeCanvas(min(800, windowWidth), min(450, windowHeight));
+    chaoY = height - 50;
+    // O Gui deve estar sempre na posição do novo chão
+    gui.y = chaoY; 
+}
+
+// Lógica de Pulo: Tecla de Espaço ou Seta para Cima
+function keyPressed() {
+    if (gameState === 'running' && (key === ' ' || key === 'ArrowUp')) {
+        gui.jump();
+    } else if (gameState === 'gameover') {
+        restartGame();
+    }
+}
+
+// Lógica de Pulo/Restart: Toque na Tela
+function touchStarted() {
+    if (gameState === 'running') {
+        gui.jump();
+    } else if (gameState === 'gameover') {
+        restartGame();
+    }
+    return false; // Impede o zoom do navegador
+}
+
+
+// ===================================
+// FUNÇÕES DE DESENHO
+// ===================================
+
+function drawChao() {
+    push();
+    fill(100, 100, 100); // Cor da calçada/rua
+    rect(0, chaoY, width, height - chaoY); 
+    
+    // Desenha uma linha simulando a guia da calçada (Pixel Art Simples)
+    stroke(200, 200, 200); 
+    strokeWeight(2);
+    line(0, chaoY, width, chaoY); 
+    pop();
+}
+
+function drawGameOverScreen() {
+    push();
+    textSize(50);
+    fill(255, 0, 0); 
+    text("FALHOU NA CLT!", width / 2, height / 2 - 40);
+    
+    textSize(25);
+    fill(255);
+    text("Pressione ESPAÇO ou Toque para Tentar de Novo", width / 2, height / 2 + 20);
+    pop();
+}
+
+
+// ===================================
+// CLASSE PLAYER (GUI)
+// ===================================
+
+class Player {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y; // Posição Y (pés)
+        this.w = 30; // Largura do Gui
+        this.h = 40; // Altura do Gui
+        this.velY = 0; 
+        this.gravidade = 1;
+        this.forcaPulo = -15;
+    }
+
+    jump() {
+        if (this.y >= chaoY - 5) { 
+            this.velY = this.forcaPulo;
+        }
+    }
+
+    update() {
+        this.velY += this.gravidade;
+        this.y += this.velY;
+
+        if (this.y > chaoY) {
+            this.y = chaoY;
+            this.velY = 0;
+        }
+    }
+
+    // Lógica de Colisão: verifica se o Gui colide com um obstáculo
+    hits(obstacle) {
+        // Verifica a colisão horizontal e vertical
+        if (this.x < obstacle.x + obstacle.w &&
+            this.x + this.w > obstacle.x &&
+            this.y - this.h < obstacle.y &&
+            this.y > obstacle.y - obstacle.h) {
+            
+            return true;
+        }
+        return false;
+    }
+
+    draw() {
+        push();
+        // Desenho "Pixel Art" Simples do Gui
+        noStroke();
+        
+        // Cabeça (Amarelo)
+        fill(255, 255, 0); 
+        rect(this.x, this.y - this.h, this.w, this.h / 3); 
+        
+        // Corpo (Camisa - Azul Escuro)
+        fill(50, 50, 180); 
+        rect(this.x, this.y - this.h * 2/3, this.w, this.h * 2/3); 
+        
+        // Cabelo/Mochila (Marrom)
+        fill(100, 50, 0); 
+        rect(this.x, this.y - this.h, this.w, this.h / 6); 
+
+        pop();
+    }
+}
+
+
+// ===================================
+// CLASSE OBSTACLE (OS DESAFIOS DA CLT)
+// ===================================
+
+class Obstacle {
+    constructor() {
+        this.x = width; // Começa fora da tela, à direita
+        
+        // Tipos de obstáculos com alturas e larguras variadas
+        let types = [
+            { w: 20, h: 30, color: color(255, 100, 0) }, // Cone
+            { w: 40, h: 50, color: color(150) },        // Lixeira
+            { w: 80, h: 10, color: color(200, 50, 50) } // Caixa
+        ];
+        
+        // Escolhe um tipo aleatório
+        this.type = random(types);
+        this.w = this.type.w;
+        this.h = this.type.h;
+        this.y = chaoY; // Posição Y (pés)
+    }
+
+    update() {
+        this.x -= velocidadeJogo; // Move para a esquerda
+    }
+
+    draw() {
+        push();
+        noStroke();
+        fill(this.type.color);
+        // Desenha o obstáculo (baseado na posição do chão)
+        rect(this.x, this.y - this.h, this.w, this.h); 
+        pop();
+    }
+}
