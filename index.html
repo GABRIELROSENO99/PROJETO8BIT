@@ -39,13 +39,14 @@
     <script>
         // ===================================
         // GUI THE KID - PIXEL ART PERFEITO
-        // Estilo idêntico à imagem fornecida
+        // Estilo idêntico à imagem - Sem erros!
         // ===================================
 
         let gui, chaoY, obstaculos = [], itens = [], nuvens = [];
         let velocidadeJogo = 3.5, gameState = 'running', vida = 100, dinheiro = 0, fase = 1;
         let score = 0, cameraX = 0, shake = 0;
         let pixelSize = 4; // Tamanho dos pixels para pixel art nítido
+        let canJump = true; // Flag para pulo simples
 
         // Paleta de cores da imagem
         const COLORS = {
@@ -68,6 +69,7 @@
         function setup() {
             createCanvas(min(1000, windowWidth), min(600, windowHeight));
             pixelDensity(1);
+            textFont('monospace');
             textAlign(CENTER, CENTER);
             chaoY = height * 0.75;
             
@@ -82,6 +84,9 @@
                 let c = lerpColor(color(200,120,80), color(50,30,60), inter);
                 stroke(c); line(0, y, width, y);
             }
+
+            // Desenhar nuvens
+            for(let nuvem of nuvens) nuvem.draw();
 
             if(gameState === 'running') {
                 updateGame();
@@ -112,6 +117,7 @@
             for(let i=obstaculos.length-1; i>=0; i--) {
                 let obs = obstaculos[i];
                 obs.update();
+                obs.draw();
                 if(gui.colide(obs)) {
                     vida -= 25;
                     obstaculos.splice(i, 1);
@@ -125,6 +131,7 @@
             for(let i=itens.length-1; i>=0; i--) {
                 let item = itens[i];
                 item.update();
+                item.draw();
                 if(gui.pega(item)) {
                     if(item.tipo === 'dinheiro') dinheiro += 10;
                     else vida = min(100, vida + 40);
@@ -139,9 +146,21 @@
             if(dinheiro >= 120 && fase === 3) vitoria();
             
             gui.update();
+            gui.draw();
+            
+            drawGround();
         }
 
-        // PIXEL ART GUI (IDÊNTICO À IMAGEM)
+        function drawGround() {
+            // Chão pixelado
+            fill(COLORS.ground);
+            rect(0, chaoY, width, height - chaoY);
+            // Linhas de rua
+            stroke(120);
+            for(let x=0; x<width; x+=50) line(x, chaoY, x+25, chaoY);
+        }
+
+        // PIXEL ART GUI (IDÊNTICO À IMAGEM - MAIS DETALHADO)
         class Gui {
             constructor() {
                 this.x = 120;
@@ -154,7 +173,7 @@
             }
             
             update() {
-                this.frame += 0.2;
+                this.frame += 0.15;
                 
                 // Física suave
                 this.vy += 0.8;
@@ -163,13 +182,7 @@
                     this.y = chaoY;
                     this.vy = 0;
                     this.puloFrame = 0;
-                }
-                
-                if(keyIsDown(32) || touches.length > 0) {
-                    if(this.y >= chaoY - 5) {
-                        this.vy = -22;
-                        this.puloFrame = 1;
-                    }
+                    canJump = true;
                 }
             }
             
@@ -187,7 +200,7 @@
                 translate(this.x, this.y + shake);
                 scale(pixelSize);
                 
-                // Pernas (animação walk cycle)
+                // Pernas (animação walk cycle - mais fluida)
                 let legOffset = sin(this.frame) * 3;
                 fill(COLORS.guiPants);
                 // Perna esquerda
@@ -206,7 +219,7 @@
                 fill(COLORS.guiPants);
                 rect(6, 22, 16, 6, 2);
                 
-                // Camisa (branca com colarinho azul)
+                // Camisa (branca com colarinho azul - igual imagem)
                 fill(COLORS.guiShirt);
                 rect(4, 10, 20, 14, 2);
                 fill(100, 150, 220);
@@ -221,13 +234,17 @@
                 fill(COLORS.guiSkin);
                 ellipse(14, 6, 14, 14);
                 
-                // Cabelo cacheado (igual imagem!)
+                // Cabelo cacheado (mais detalhado, como na imagem!)
                 fill(COLORS.guiHair);
                 ellipse(10, 2, 8, 6);
                 ellipse(14, 0, 10, 7);
                 ellipse(18, 2, 8, 6);
+                // Cachos extras
+                fill(70, 40, 10);
+                ellipse(12, 1, 4, 3);
+                ellipse(16, 1, 4, 3);
                 
-                // Olhos
+                // Olhos (expressivos)
                 fill(0);
                 ellipse(11, 5, 2, 2);
                 ellipse(17, 5, 2, 2);
@@ -235,7 +252,7 @@
                 ellipse(11.2, 4.8, 1, 1);
                 ellipse(17.2, 4.8, 1, 1);
                 
-                // Boca
+                // Boca (sorriso confiante)
                 stroke(200, 150, 120);
                 strokeWeight(1);
                 noFill();
@@ -247,13 +264,12 @@
                 rect(0, 12, 5, 8, 1);
                 rect(23, 12, 5, 8, 1);
                 
-                // Mão (polegar para cima quando pular)
+                // Mão (polegar para cima na vitória/pulo)
                 fill(COLORS.guiSkin);
-                if(this.puloFrame > 0) {
-                    ellipse(2, 15, 4, 4); // mão esquerda
-                    ellipse(27, 20, 4, 4); // mão direita (👍)
+                ellipse(2, 15, 4, 4); // mão esquerda
+                if(this.puloFrame > 0 || gameState === 'vitoria') {
+                    ellipse(27, 20, 4, 4); // 👍
                 } else {
-                    ellipse(2, 15, 4, 4);
                     ellipse(27, 15, 4, 4);
                 }
                 
@@ -261,7 +277,7 @@
             }
         }
 
-        // OBSTÁCULOS PIXEL ART (igual imagem)
+        // OBSTÁCULOS PIXEL ART (igual imagem - mais detalhes)
         class Obstaculo {
             constructor() {
                 this.x = width + 100;
@@ -280,26 +296,34 @@
                 translate(this.x, this.y + shake);
                 scale(pixelSize);
                 
-                if(this.tipo === 0) { // CONE
+                if(this.tipo === 0) { // CONE (com listras)
                     fill(COLORS.cone);
                     triangle(2, 20, 10, 2, 18, 20);
                     fill(255, 50, 0);
                     triangle(4, 15, 10, 8, 16, 15);
+                    fill(255, 200, 0);
+                    line(5, 12, 15, 12);
                 }
-                else if(this.tipo === 1) { // LIXEIRA
+                else if(this.tipo === 1) { // LIXEIRA (com tampa)
                     fill(COLORS.trash);
                     rect(2, 8, 12, 14, 2);
                     rect(1, 6, 14, 4, 1);
                     fill(255);
                     ellipse(7, 12, 3, 3);
+                    // Lixo interno
+                    fill(100);
+                    rect(4, 15, 8, 5);
                 }
-                else if(this.tipo === 2) { // CAIXA
+                else if(this.tipo === 2) { // CAIXA (com etiquetas)
                     fill(120, 60, 40);
                     rect(0, 0, 24, 18, 2);
                     fill(200, 150, 100);
                     rect(4, 4, 16, 10, 1);
+                    fill(255, 0, 0);
+                    textSize(6);
+                    text("CLT", 12, 9);
                 }
-                else { // MORADOR
+                else { // MORADOR (com expressão triste)
                     fill(50, 40, 30);
                     ellipse(10, 8, 16, 20); // corpo
                     fill(COLORS.guiSkin);
@@ -308,13 +332,16 @@
                     ellipse(7, 3, 2, 2);
                     ellipse(13, 3, 2, 2);
                     fill(255, 200, 150);
-                    arc(10, 7, 6, 4, 0, PI);
+                    arc(10, 7, 6, 4, PI, TWO_PI); // Boca triste
+                    // Barba
+                    fill(30);
+                    rect(8, 8, 4, 3);
                 }
                 pop();
             }
         }
 
-        // ITENS PIXEL ART
+        // ITENS PIXEL ART (mais bonitos)
         class Item {
             constructor() {
                 this.x = width + random(200, 400);
@@ -322,31 +349,42 @@
                 this.w = 16 * pixelSize;
                 this.h = 16 * pixelSize;
                 this.tipo = random() > 0.5 ? 'dinheiro' : 'controle';
+                this.bounce = 0;
             }
-            update() { this.x -= velocidadeJogo * 0.7; }
+            update() { 
+                this.x -= velocidadeJogo * 0.7; 
+                this.bounce = sin(frameCount * 0.1) * 2;
+            }
             draw() {
                 push();
-                translate(this.x, this.y);
+                translate(this.x, this.y + this.bounce + shake);
                 scale(pixelSize);
                 if(this.tipo === 'dinheiro') {
                     fill(COLORS.money);
                     rect(2, 2, 12, 12, 2);
                     fill(255, 215, 0);
                     textSize(10);
-                    textAlign(CENTER);
                     text("R$", 8, 11);
+                    // Brilho
+                    fill(255, 255, 255, 100);
+                    ellipse(8, 6, 4, 4);
                 } else {
                     fill(COLORS.controller);
                     rect(1, 4, 14, 8, 2);
                     fill(255);
                     ellipse(5, 8, 3, 3);
                     ellipse(11, 8, 3, 3);
+                    // Botões
+                    fill(255, 0, 0);
+                    ellipse(6, 7, 1.5, 1.5);
+                    fill(0, 255, 0);
+                    ellipse(10, 7, 1.5, 1.5);
                 }
                 pop();
             }
         }
 
-        // NUVE NS PARALLAX
+        // NUVENS PARALLAX
         class Nuvem {
             constructor() {
                 this.x = random(width);
@@ -367,13 +405,13 @@
             }
         }
 
-        // HUD RETRO
+        // HUD RETRO (com barra de progresso)
         function drawHUD() {
             // Fundo HUD
             fill(0, 0, 0, 200);
             rect(20, 20, 280, 80, 12);
             
-            // Vida
+            // Vida (barra)
             fill(255, 50, 50);
             rect(40, 30, vida * 1.6, 20, 8);
             fill(255);
@@ -411,18 +449,39 @@
             fill(255);
             textSize(28);
             text(`JABAQUARA! R$ ${dinheiro}`, width/2, height/2 + 20);
+            text("Toque para jogar de novo", width/2, height/2 + 50);
+        }
+
+        function gameOver() { 
+            gameState = 'gameover'; 
+            noLoop(); 
+        }
+
+        function vitoria() { 
+            gameState = 'vitoria'; 
+            noLoop(); 
         }
 
         function keyPressed() {
-            if(key === ' ') {
-                if(gameState === 'running') gui.vy = -22;
-                else restart();
+            if (key === ' ' || key === 'ArrowUp') {
+                if(gameState === 'running' && canJump) {
+                    gui.vy = -22;
+                    gui.puloFrame = 1;
+                    canJump = false;
+                } else if(gameState !== 'running') {
+                    restart();
+                }
             }
         }
 
         function touchStarted() {
-            if(gameState === 'running') gui.vy = -22;
-            else restart();
+            if(gameState === 'running' && canJump) {
+                gui.vy = -22;
+                gui.puloFrame = 1;
+                canJump = false;
+            } else if(gameState !== 'running') {
+                restart();
+            }
             return false;
         }
 
@@ -430,6 +489,7 @@
             gameState = 'running';
             vida = 100; dinheiro = 0; fase = 1;
             velocidadeJogo = 3.5; obstaculos = []; itens = [];
+            canJump = true; shake = 0;
             gui = new Gui();
             loop();
         }
@@ -437,12 +497,15 @@
         function windowResized() {
             resizeCanvas(min(1000, windowWidth), min(600, windowHeight));
             chaoY = height * 0.75;
+            gui.y = chaoY;
         }
 
         // Loading
         setTimeout(() => {
-            document.getElementById('loading').style.opacity = '0';
-            setTimeout(() => document.getElementById('loading').remove(), 500);
+            const loading = document.getElementById('loading');
+            loading.style.transition = 'opacity 0.5s';
+            loading.style.opacity = '0';
+            setTimeout(() => loading.style.display = 'none', 500);
         }, 2000);
     </script>
 </body>
