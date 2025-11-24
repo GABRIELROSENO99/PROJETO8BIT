@@ -1,414 +1,410 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>Gui The Kid - Vencendo a CLT</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analista de Ações Nimbus 3000</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Estilos globais e dark mode */
         body {
-            overflow: hidden; display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; background: #1a0d00; font-family: 'Courier New', monospace;
-            touch-action: none; user-select: none;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Azul Escuro Fundo */
+            color: #e4e4e7; /* Texto principal claro */
         }
-        canvas {
-            display: block; max-width: 100%; max-height: 100%;
-            image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;
-            box-shadow: 0 0 30px rgba(255,100,0,0.6); border: 6px solid #ff6600; border-radius: 16px;
+        .container-card {
+            max-width: 900px;
+            /* Centralização horizontal garantida pelo body flexbox, mas mantemos o max-width */
+            padding: 2rem 1rem;
+            background-color: #16162a; /* Card principal ligeiramente mais escuro */
+            margin: auto; /* Garante que o card se auto-centralize e não estique mais que o max-width */
         }
-        #loading {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #ffaa00; font-size: 2.2rem; font-weight: bold; text-align: center;
-            text-shadow: 0 0 20px #ff6600; animation: glow 1.2s infinite; pointer-events: none; z-index: 200;
+        .input-group, .button-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
         }
-        @keyframes glow {
-            0%,100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+        #results {
+            white-space: pre-wrap;
+            min-height: 150px;
+            transition: all 0.3s ease;
         }
-        @media (max-width: 600px) {
-            canvas { width: 100vw !important; height: 100vh !important; border-radius: 0; border: none; }
-            #loading { font-size: 1.6rem; }
+        .loading-animation {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #10b981; /* Verde esmeralda */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Estilo para listas dentro do resultado */
+        #results ul {
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        #results li {
+            margin-top: 0.25rem;
         }
     </style>
 </head>
-<body>
-    <div id="loading">CARREGANDO 2D...</div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+<body class="min-h-screen flex items-center justify-center p-4"> <!-- Adicionado min-h-screen, flex, items-center e justify-center para centralização total -->
+    <div class="container-card shadow-2xl rounded-2xl p-6 md:p-10 border border-indigo-900 w-full"> <!-- Adicionado w-full para melhor responsividade -->
+        <h1 class="text-4xl font-extrabold text-indigo-400 mb-2">Analista de Ações Nimbus 3000📈</h1>
+        <p class="text-gray-400 mb-6">Insira o ticker do ativo (ex: GOOG, PETR4.SA) e escolha uma análise. Os dados são pesquisados em tempo real.</p>
+        <!-- Seção de Entrada -->
+        <div class="input-group mb-6 flex-col sm:flex-row">
+            <input type="text" id="tickerInput" placeholder="Ex: GOOG ou PETR4.SA"
+                   class="flex-grow p-4 border border-indigo-700 bg-gray-900 text-gray-200 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 transition duration-150 shadow-inner">
+            <button id="clearButton" onclick="clearResults()"
+                    class="w-full sm:w-auto px-6 py-4 bg-gray-700 text-gray-200 font-semibold rounded-xl hover:bg-gray-600 transition duration-150 shadow-md">
+                Limpar
+            </button>
+        </div>
+        <!-- Seção de Botões de Análise -->
+        <div class="button-group flex-wrap justify-center sm:justify-start mb-8">
+            <button onclick="analyzeStock('fundamental')"
+                    class="flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px] m-1">
+                Análise Fundamentalista
+            </button>
+            <button onclick="analyzeStock('technical')"
+                    class="flex items-center justify-center px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[160px] m-1">
+                Análise Técnica
+            </button>
+            <button onclick="analyzeStock('momentum')"
+                    class="flex items-center justify-center px-6 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-500 min-w-[160px] m-1">
+                Análise de Momentum
+            </button>
+            <button onclick="analyzeStock('valuation')"
+                    class="flex items-center justify-center px-6 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 transition duration-150 shadow-lg transform hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[160px] m-1">
+                Análise de Valuation
+            </button>
+        </div>
+        <!-- Seção de Resultados -->
+        <div class="bg-gray-700 p-6 rounded-xl border border-gray-600 shadow-inner">
+            <h2 class="text-xl font-bold text-gray-200 mb-4 flex items-center">
+                <span id="analysisTitle" class="truncate">Resultados da Análise</span>
+            </h2>
+            <!-- Container onde os cards e o texto serão inseridos -->
+            <div id="resultsContainer">
+                <div id="cardsSection"></div>
+                <div id="results" class="text-gray-300 leading-relaxed min-h-[100px] mt-4">
+                    Aguardando o ticker e o tipo de análise...
+                </div>
+            </div>
+           
+            <div id="sourcesContainer" class="mt-6 pt-4 border-t border-gray-600 text-sm text-gray-400"></div>
+        </div>
+        <!-- Seção de Mensagens/Erros (Para substituir alert()) -->
+        <div id="messageBox" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl hidden transition-opacity duration-300" role="alert"></div>
+    </div>
     <script>
-        // ===================================
-        // GUI THE KID - 2D SIDE-SCROLLER PERFEITO
-        // Pixel Art 100% fiel à imagem!
-        // ===================================
-
-        let gui, chaoY, obstaculos = [], itens = [], nuvens = [];
-        let velocidadeJogo = 4, gameState = 'running', vida = 100, dinheiro = 0, fase = 1;
-        let shake = 0, score = 0, canJump = true;
-
-        const C = {
-            skyTop: [200,120,80], skyBot: [50,30,60],
-            ground: [79,59,44], line: [120],
-            shirt: [200,220,255], collar: [100,150,220],
-            pants: [100,140,220], shoe: [40],
-            hair: [90,60,30], skin: [255,200,150],
-            cone: [255,140,0], trash: [90,90,90], box: [120,60,40], homeless: [60,50,40],
-            money: [255,230,100], controller: [50,180,255]
-        };
-
-        function setup() {
-            createCanvas(min(1000, windowWidth), min(600, windowHeight));
-            pixelDensity(1);
-            textFont('monospace');
-            textAlign(CENTER, CENTER);
-            textSize(12);
-            chaoY = height - 100;
-            gui = new Gui();
-            for(let i = 0; i < 6; i++) nuvens.push(new Nuvem());
+        // Variáveis Globais do Canvas (MANDATÓRIAS)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // Chave API fornecida pelo usuário, inserida para corrigir o erro de autenticação.
+        const apiKey = "AIzaSyDsfkqZMTY-zuANGHoTHMYhtBBdkTJLgcI";
+        const modelName = 'gemini-2.5-flash-preview-09-2025';
+        // --- Funções de Utilitário e UI ---
+        function showMessage(message, type = 'info') {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.classList.remove('hidden', 'opacity-0');
+            box.classList.add('opacity-100');
+           
+            let bgColor = 'bg-blue-800 border-blue-600 text-blue-200';
+            if (type === 'error') bgColor = 'bg-red-800 border-red-600 text-red-200';
+            if (type === 'success') bgColor = 'bg-green-800 border-green-600 text-green-200';
+           
+            box.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl transition-opacity duration-300 border ${bgColor}`;
+            setTimeout(() => {
+                box.classList.remove('opacity-100');
+                box.classList.add('opacity-0');
+                setTimeout(() => { box.classList.add('hidden'); }, 300);
+            }, 5000);
         }
-
-        function draw() {
-            // Céu 2D gradiente
-            for(let y = 0; y < chaoY; y++) {
-                let t = map(y, 0, chaoY, 0, 1);
-                let col = lerpColor(color(...C.skyTop), color(...C.skyBot), t);
-                stroke(col); line(0, y, width, y);
-            }
-
-            // Nuvens
-            for(let n of nuvens) n.draw();
-
-            if(gameState === 'running') {
-                updateGame();
-            } else if(gameState === 'gameover') {
-                drawGameOver();
-            } else if(gameState === 'vitoria') {
-                drawVitoria();
-            }
-
-            drawHUD();
+        function clearResults() {
+            document.getElementById('tickerInput').value = '';
+            document.getElementById('results').innerHTML = 'Aguardando o ticker e o tipo de análise...';
+            document.getElementById('cardsSection').innerHTML = '';
+            document.getElementById('analysisTitle').textContent = 'Resultados da Análise';
+            document.getElementById('sourcesContainer').innerHTML = '';
         }
-
-        function updateGame() {
-            score++;
-            shake *= 0.92;
-
-            // Spawn
-            if(frameCount % 100 === 0) obstaculos.push(new Obstaculo());
-            if(frameCount % 160 === 0) itens.push(new Item());
-
-            // Nuvens
-            for(let n of nuvens) n.update();
-
-            // Obstáculos
-            for(let i = obstaculos.length - 1; i >= 0; i--) {
-                let o = obstaculos[i];
-                o.update();
-                o.draw();
-                if(gui.colide(o)) {
-                    vida -= 25;
-                    obstaculos.splice(i, 1);
-                    shake = 12;
-                    if(vida <= 0) { gameState = 'gameover'; noLoop(); }
-                }
-                if(o.x < -60) obstaculos.splice(i, 1);
+        // --- Configuração de Análise ---
+        function getAnalysisConfig(analysisType, ticker) {
+            let systemPrompt = "";
+            let userQuery = "";
+            let title = "";
+           
+            // INSTRUÇÃO REFORÇADA E UNIFICADA para cards
+            let cardInstruction = "A análise DEVE começar imediatamente (sem texto introdutório) com uma lista Markdown de exatamente 6 'INDICADORES CHAVE'. Use o formato EXATO para cada item da lista (começando em uma nova linha): `- **[MÉTRICA]:** [VALOR] | Status: [STATUS_COLOR_KEY]`. As chaves de status **MANDATÓRIAS** para coloração são: 'COMPRA', 'VENDA', ou 'NEUTRO'.";
+           
+            switch (analysisType) {
+                case 'fundamental':
+                    title = "Análise Fundamentalista - " + ticker;
+                    const fundamentalCards = "Os cards DEVEM ser exatamente estes: 1. Dívida Líquida / EBITDA Atual (Foco: Saúde Financeira). 2. ROE (Return on Equity) (Foco: Rentabilidade). 3. ROIC (Return on Invested Capital) vs WACC (Foco: Eficiência e Criação de Valor). 4. CAGR de Receita (5 Anos) (Foco: Crescimento). 5. Liquidez Corrente (Foco: Solidez de Curto Prazo). 6. Margem Líquida (Foco: Lucratividade Operacional).";
+                    systemPrompt = `Você é um analista fundamentalista experiente e profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, evidências quantitativas e qualitativas, comparações setoriais e projeções fundamentadas. ${cardInstruction} ${fundamentalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo benchmarks setoriais. O Significado: O que a métrica/indicador realmente representa no contexto da empresa e do mercado. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e razões. Em seguida, forneça uma Análise Detalhada com subtópicos: Balanço Patrimonial (incluindo análise de ativos, passivos e patrimônio), Demonstração de Resultados (DRE) (com breakdown de receitas, custos e margens), Fluxo de Caixa (análise de geração e alocação), Análise Setorial/Vantagem Competitiva (Moat) (incluindo análise SWOT e posicionamento). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Compra Forte', 'Manter' etc.) e riscos potenciais. O resultado deve ser formatado em Markdown com títulos e listas. Gere a análise fundamentalista mais completa e profissional possível com foco em Saúde Financeira, Rentabilidade, Crescimento e Posição Competitiva.`;
+                    userQuery = `Forneça a análise fundamentalista mais recente para o ativo: ${ticker}.`;
+                    break;
+                case 'technical':
+                    title = "Análise Técnica Completa - " + ticker;
+                    const technicalCards = "Os cards DEVEM ser exatamente estes: 1. Suporte Horizontal Imediato (Foco: Risco/Reversão (Piso)). 2. Resistência Horizontal Imediata (Foco: Alvo/Reversão (Teto)). 3. Média Móvel Exponencial (MME) de 200 Períodos (Foco: Tendência Primária). 4. RSI (Índice de Força Relativa) (Foco: Momentum e Sobrecomprado/Vendido). 5. MACD (Moving Average Convergence Divergence) (Foco: Cruzamentos e Momentum). 6. Volume Médio Diário vs Atual (Foco: Confirmação da Força).";
+                    systemPrompt = `Você é um analista técnico de mercado de ações de elite e profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, evidências gráficas e quantitativas, interpretações de padrões e projeções baseadas em históricos. ${cardInstruction} ${technicalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo níveis históricos e contextos de mercado. O Significado: O que a métrica/indicador realmente representa no contexto da tendência e volatilidade. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e estratégias associadas. Em seguida, forneça uma Análise Detalhada com subtópicos: Identificação de Padrões Gráficos (candlesticks, formações como cabeça e ombros, triângulos), Níveis de Fibonacci (retracements e extensions), Análise de Volatilidade (Bandas de Bollinger e ATR), Indicadores de Tendência (ADMI, Ichimoku), e Conclusão de Tendência com Sugestão de Ponto de Entrada/Saída (incluindo stop-loss e take-profit). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Bullish', 'Bearish' etc.) e riscos potenciais. Use o formato Markdown. Gere a análise técnica mais completa e profissional possível, focada em Tendências, Padrões, Momentum e Força do Preço, no timeframe diário com referências a semanais/mensais para contexto.`;
+                    userQuery = `Realize a análise técnica para a ação/ativo: ${ticker}.`;
+                    break;
+                case 'momentum':
+                    title = "Análise de Momentum - " + ticker;
+                    const momentumCards = "Os cards DEVEM ser exatamente estes: 1. Retorno Total (Últimos 12 Meses) (Foco: Força Absoluta (Longo Prazo)). 2. Retorno da Ação vs Índice de Referência (12 Meses) (Foco: Força Relativa (Outperformance)). 3. Retorno dos Últimos 3 Meses (Foco: Curva de Curto Prazo). 4. Retorno dos Últimos 6 Meses (Foco: Curva de Médio Prazo). 5. Taxa de Variação (RoC) de 20 Períodos (Foco: Persistência da Tendência). 6. Posição no Ranking de Momentum (Percentil) (Foco: Classificação em relação aos Pares).";
+                    systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo, com abordagem profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, comparações quantitativas, gráficos de performance relativa e projeções baseadas em ciclos de momentum. ${cardInstruction} ${momentumCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo benchmarks de mercado e setoriais. O Significado: O que a métrica/indicador realmente representa no contexto de ciclos econômicos. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e estratégias de rotação. Em seguida, forneça uma Análise Detalhada com subtópicos: Comparação de Retornos em diferentes janelas (com curvas de equity), Utilização de Indicadores de Momentum (MACD, RSI estocástico), Análise de Força Relativa (vs índices e pares), e Conclusão sobre a Posição da Ação na Curva (Aceleração/Desaceleração, incluindo fatores catalisadores). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação) e riscos potenciais como reversões. Use o formato Markdown. Gere a análise de Momentum mais completa e profissional possível, focada na Força e Persistência da Tendência de Preço, comparando a ação com o índice de referência apropriado (e.g., S&P 500 para ações US, Ibovespa para ações BR) e pares setoriais.`;
+                    userQuery = `Realize a análise de momentum para a ação/ativo: ${ticker}.`;
+                    break;
+                case 'valuation':
+                    title = "Análise de Valuation - " + ticker;
+                    const valuationCards = "Os cards DEVEM ser exatamente estes: 1. P/L Atual vs Média Histórica (Foco: Preço vs Lucro). 2. PEG Ratio e Classificação (Foco: Preço vs Crescimento). 3. EV/EBITDA vs Média do Setor (Foco: Valor da Empresa). 4. P/VP (Preço/Valor Patrimonial) (Foco: Preço vs Valor Contábil). 5. Retorno Implícito (DCF) (Foco: Valor Intrínseco). 6. Preço Justo Alvo (Média Ponderada) (Foco: Conclusão de Preço).";
+                    systemPrompt = `Você é um analista de valuation experiente e profissional. O objetivo é determinar se a empresa está sobrevalorizada, justamente valorizada ou subvalorizada no mercado atual e entender seu potencial de crescimento futuro, com análises quantitativas rigorosas. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, modelos financeiros e sensibilidade. ${cardInstruction} ${valuationCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo históricos e setoriais. O Significado: O que a métrica/indicador realmente representa no contexto de ciclos de mercado. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e ajustes por risco. Em seguida, forneça uma Análise Detalhada com subtópicos: Detalhamento dos Múltiplos (com comparações peer-to-peer), Análise da Taxa de Crescimento (Growth Rate, incluindo projeções EPS), Projeção Simplificada de Fluxo de Caixa Livre (DCF com premissas explicitas), Análise de Sensibilidade e Margem de Segurança, e Modelos Alternativos (como Gordon Growth ou Sum-of-Parts). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Subvalorizada' etc.) e riscos potenciais. Use o formato Markdown com títulos e listas. Gere a análise de valuation mais completa e profissional possível, utilizando múltiplos e metodologias de precificação para determinar o Preço Justo.`;
+                    userQuery = `Forneça a análise de valuation racional mais recente para o ativo: ${ticker}.`;
+                    break;
+                default:
+                    throw new Error("Tipo de análise desconhecido.");
             }
-
-            // Itens
-            for(let i = itens.length - 1; i >= 0; i--) {
-                let it = itens[i];
-                it.update();
-                it.draw();
-                if(gui.pega(it)) {
-                    if(it.tipo === 'dinheiro') dinheiro += 10;
-                    else vida = min(100, vida + 35);
-                    itens.splice(i, 1);
-                }
-                if(it.x < -40) itens.splice(i, 1);
-            }
-
-            // Fases
-            if(dinheiro >= 35 && fase === 1) { fase = 2; velocidadeJogo = 5; }
-            if(dinheiro >= 80 && fase === 2) { fase = 3; velocidadeJogo = 5.5; }
-            if(dinheiro >= 130 && fase === 3) { gameState = 'vitoria'; noLoop(); }
-
-            gui.update();
-            gui.draw();
-            drawChao();
+            return { systemPrompt, userQuery, title };
         }
-
-        function drawChao() {
-            fill(...C.ground);
-            noStroke();
-            rect(0, chaoY, width, height - chaoY);
-            stroke(...C.line);
-            strokeWeight(3);
-            for(let x = 0; x < width; x += 60) line(x, chaoY, x + 30, chaoY);
-            noStroke();
-        }
-
-        // ========== GUI 2D PIXEL ART ==========
-        class Gui {
-            constructor() {
-                this.x = 80;
-                this.y = chaoY - 42;
-                this.vy = 0;
-                this.frame = 0;
-                this.w = 28;
-                this.h = 42;
-            }
-            update() {
-                this.frame += 0.25;
-                this.vy += 0.9;
-                this.y += this.vy;
-                if(this.y >= chaoY - 42) {
-                    this.y = chaoY - 42;
-                    this.vy = 0;
-                    canJump = true;
+        // --- Lógica de Chamada da API ---
+        async function fetchWithBackoff(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                   
+                    if (!response.ok) {
+                          const errorBody = await response.json().catch(() => ({}));
+                          const errorMessage = errorBody.error?.message || `Erro HTTP: ${response.status} ${response.statusText}`;
+                          throw new Error(`Falha na API: ${errorMessage}`);
+                    }
+                   
+                    if (response.status !== 429) {
+                        return response;
+                    }
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    // console.warn(`[API] Limite de taxa atingido. Tentando novamente em ${Math.round(delay / 1000)}s.`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } catch (error) {
+                    // console.error("[API] Erro durante o fetch, tentando novamente:", error);
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
-            colide(o) {
-                return this.x < o.x + o.w && this.x + this.w > o.x &&
-                       this.y < o.y + o.h && this.y + this.h > o.y;
-            }
-            pega(it) {
-                return dist(this.x + 14, this.y + 21, it.x, it.y) < 30;
-            }
-            draw() {
-                push();
-                translate(this.x, this.y + shake);
-
-                // Pernas
-                let leg = sin(this.frame) * 3;
-                fill(...C.pants);
-                rect(6, 26, 5, 14, 1); rect(6 + leg, 34, 5, 6, 1);
-                rect(17, 26, 5, 14, 1); rect(17 - leg, 34, 5, 6, 1);
-
-                // Sapatos
-                fill(...C.shoe);
-                rect(6, 38, 6, 3); rect(17, 38, 6, 3);
-
-                // Calça
-                fill(...C.pants);
-                rect(6, 22, 16, 6, 2);
-
-                // Camisa
-                fill(...C.shirt);
-                rect(4, 10, 20, 14, 2);
-                fill(...C.collar);
-                rect(7, 12, 2, 3); rect(19, 12, 2, 3);
-
-                // Cinto
-                fill(60,40,20);
-                rect(6, 22, 16, 2);
-
-                // Cabeça
-                fill(...C.skin);
-                ellipse(14, 6, 14, 14);
-
-                // Cabelo cacheado
-                fill(...C.hair);
-                ellipse(10, 2, 8, 6); ellipse(14, 0, 10, 7); ellipse(18, 2, 8, 6);
-                fill(70,40,10);
-                ellipse(12, 1, 4, 3); ellipse(16, 1, 4, 3);
-
-                // Olhos
-                fill(0);
-                ellipse(11, 5, 2, 2); ellipse(17, 5, 2, 2);
-                fill(255);
-                ellipse(11.2, 4.8, 1, 1); ellipse(17.2, 4.8, 1, 1);
-
-                // Boca
-                stroke(200,150,120);
-                strokeWeight(1);
-                noFill();
-                arc(14, 9, 6, 4, 0, PI);
-                noStroke();
-
-                // Braços
-                fill(...C.shirt);
-                rect(0, 12, 5, 8, 1); rect(23, 12, 5, 8, 1);
-
-                // Mãos
-                fill(...C.skin);
-                ellipse(2, 15, 4, 4);
-                ellipse(27, 15, 4, 4);
-
-                pop();
-            }
+            throw new Error("Falha na chamada da API após várias tentativas.");
         }
-
-        // ========== OBSTÁCULOS ==========
-        class Obstaculo {
-            constructor() {
-                this.x = width + 100;
-                this.y = chaoY;
-                this.tipo = floor(random(4));
-                this.w = this.tipo === 0 ? 12 : this.tipo === 1 ? 16 : this.tipo === 2 ? 24 : 20;
-                this.h = this.tipo === 0 ? 20 : this.tipo === 1 ? 22 : this.tipo === 2 ? 18 : 32;
+        // Função principal que chama o Gemini API
+        async function analyzeStock(analysisType) {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('results');
+            const cardsDiv = document.getElementById('cardsSection');
+            const sourcesDiv = document.getElementById('sourcesContainer');
+            const titleElement = document.getElementById('analysisTitle');
+            if (!ticker) {
+                showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
+                return;
             }
-            update() { this.x -= velocidadeJogo; }
-            draw() {
-                push();
-                translate(this.x, this.y + shake);
-                if(this.tipo === 0) { // Cone
-                    fill(...C.cone);
-                    triangle(2, 20, 10, 2, 18, 20);
-                    fill(255,50,0);
-                    triangle(4, 15, 10, 8, 16, 15);
-                } else if(this.tipo === 1) { // Lixeira
-                    fill(...C.trash);
-                    rect(2, 8, 12, 14, 2); rect(1, 6, 14, 4, 1);
-                    fill(255);
-                    ellipse(7, 12, 3, 3);
-                } else if(this.tipo === 2) { // Caixa
-                    fill(...C.box);
-                    rect(0, 0, 24, 18, 2);
-                    fill(200,150,100);
-                    rect(4, 4, 16, 10, 1);
-                    fill(255,0,0);
-                    textSize(6);
-                    text("CLT", 12, 9);
-                } else { // Morador
-                    fill(...C.homeless);
-                    ellipse(10, 8, 16, 20);
-                    fill(...C.skin);
-                    ellipse(10, 4, 10, 10);
-                    fill(0);
-                    ellipse(7, 3, 2, 2); ellipse(13, 3, 2, 2);
-                    fill(255,200,150);
-                    arc(10, 7, 6, 4, PI, TWO_PI);
+            titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
+            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
+            cardsDiv.innerHTML = '';
+            sourcesDiv.innerHTML = '';
+            try {
+                const config = getAnalysisConfig(analysisType, ticker);
+                // Usa a chave API definida acima
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const payload = {
+                    contents: [{ parts: [{ text: config.userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: config.systemPrompt }]
+                    }
+                };
+                const response = await fetchWithBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                    console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
+                    throw new Error("Resposta inválida da API ou conteúdo vazio.");
                 }
-                pop();
-            }
-        }
-
-        // ========== ITENS ==========
-        class Item {
-            constructor() {
-                this.x = width + random(200, 400);
-                this.y = chaoY - random(60, 120);
-                this.tipo = random() > 0.5 ? 'dinheiro' : 'controle';
-                this.bounce = 0;
-            }
-            update() {
-                this.x -= velocidadeJogo * 0.7;
-                this.bounce = sin(frameCount * 0.1) * 2;
-            }
-            draw() {
-                push();
-                translate(this.x, this.y + this.bounce + shake);
-                if(this.tipo === 'dinheiro') {
-                    fill(...C.money);
-                    rect(2, 2, 12, 12, 2);
-                    fill(255,215,0);
-                    textSize(10);
-                    text("R$", 8, 11);
+                let generatedText = candidate.content.parts[0].text;
+               
+                // 1. Processar e renderizar os cards
+                const { cardHtml, cleanedMarkdown } = renderKeyMetricsAsCards(generatedText);
+                cardsDiv.innerHTML = cardHtml;
+               
+                // 2. Formatar o restante do texto
+                const formattedText = formatMarkdownToHtml(cleanedMarkdown);
+                resultsDiv.innerHTML = formattedText;
+                titleElement.textContent = config.title;
+                // 3. Extrair e exibir as fontes (citações)
+                const sources = extractGroundingSources(candidate);
+                if (sources.length > 0) {
+                    const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
+                        .map(uri => sources.find(s => s.uri === uri));
+                    const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) =>
+                        `<a href="${s.uri}" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">${s.title} (${index + 1})</a>`
+                    ).join(', ');
+                    sourcesDiv.innerHTML = sourcesHtml;
                 } else {
-                    fill(...C.controller);
-                    rect(1, 4, 14, 8, 2);
-                    fill(255);
-                    ellipse(5, 8, 3, 3); ellipse(11, 8, 3, 3);
+                    sourcesDiv.innerHTML = 'Nenhuma fonte citada pelo modelo.';
                 }
-                pop();
+                showMessage("Análise gerada com sucesso!", 'success');
+            } catch (error) {
+                console.error("Erro na análise:", error);
+                titleElement.textContent = 'Erro na Análise';
+                resultsDiv.innerHTML = `<p class="text-red-500">Ocorreu um erro ao processar sua solicitação: ${error.message}. Por favor, tente novamente.</p>`;
+                cardsDiv.innerHTML = '';
+                sourcesDiv.innerHTML = '';
+                showMessage(`Falha ao gerar análise: ${error.message}`, 'error');
             }
         }
-
-        // ========== NUVENS ==========
-        class Nuvem {
-            constructor() {
-                this.x = random(width);
-                this.y = random(50, 200);
-                this.size = random(40, 80);
-                this.speed = random(0.2, 0.5);
+        // Função para extrair fontes
+        function extractGroundingSources(candidate) {
+            let sources = [];
+            const groundingMetadata = candidate.groundingMetadata;
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attribution => ({
+                        uri: attribution.web?.uri,
+                        title: attribution.web?.title,
+                    }))
+                    .filter(source => source.uri && source.title);
             }
-            update() {
-                this.x -= this.speed;
-                if(this.x < -this.size) this.x = width + this.size;
+            return sources;
+        }
+        // --- Funções de Renderização ---
+       
+        // Função para identificar e renderizar as métricas chave como cards coloridos
+        function renderKeyMetricsAsCards(markdown) {
+            // Padrão: - **[MÉTRICA]:** [VALOR] | Status: [STATUS/AÇÃO]
+            // Usamos 'gim' para encontrar o padrão em múltiplas linhas.
+            const cardPattern = /^\s*-\s*\*\*(.*?):\*\*\s*(.*?)\s*\|\s*Status:\s*(.*)/gim;
+            let match;
+            const cards = [];
+            const matchedLines = [];
+            const originalText = markdown;
+            // Encontra todas as linhas de métricas
+            while ((match = cardPattern.exec(markdown)) !== null) {
+                const line = match[0].trim();
+                const metric = match[1].trim();
+                const value = match[2].trim();
+                const status = match[3].trim();
+                cards.push({ metric, value, status });
+                // Adiciona a linha completa ao array para remoção posterior
+                matchedLines.push(line);
             }
-            draw() {
-                fill(255,255,255,180);
-                noStroke();
-                ellipse(this.x, this.y, this.size, this.size * 0.6);
-                ellipse(this.x + this.size*0.3, this.y, this.size*0.8, this.size*0.5);
-                ellipse(this.x - this.size*0.3, this.y, this.size*0.8, this.size*0.5);
+            // Se não encontrou cards, retorna o markdown original
+            if (cards.length === 0) return { cardHtml: '', cleanedMarkdown: markdown };
+            // Remove todas as linhas de cards encontradas do texto original
+            let cleanedMarkdown = originalText;
+            matchedLines.forEach(line => {
+                // Remove a linha casada e qualquer linha vazia/espaço em branco ao redor
+                // Usamos um regex mais seguro para garantir que a remoção funcione em qualquer posição
+                cleanedMarkdown = cleanedMarkdown.replace(new RegExp(line.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), '').trim();
+            });
+            // Remove o cabeçalho 'INDICADORES CHAVE' se o modelo o tiver adicionado (apesar da instrução)
+            cleanedMarkdown = cleanedMarkdown.replace(/#+\s*INDICADORES CHAVE\s*/gi, '').trim();
+           
+            let cardsHtml = '<div class="flex flex-wrap gap-4 mb-6">'; // Adiciona margem inferior para separar do texto
+           
+            cards.forEach(card => {
+                let colorClass = 'bg-gray-700 border-gray-600'; // Default Neutro/Info/Fallback
+                let indicatorColor = 'text-gray-400';
+               
+                // Definir cores baseadas no status/tom (focado nas palavras-chave COMPRA, VENDA, NEUTRO)
+                const statusLower = card.status.toLowerCase();
+               
+                // COMPRA (Verde)
+                if (statusLower.includes('compra') || statusLower.includes('alta') || statusLower.includes('forte') || statusLower.includes('positivo') || statusLower.includes('bullish')) {
+                    colorClass = 'bg-emerald-800/70 border-emerald-600';
+                    indicatorColor = 'text-emerald-400';
+                // VENDA (Vermelho)
+                } else if (statusLower.includes('venda') || statusLower.includes('baixa') || statusLower.includes('fraco') || statusLower.includes('negativo') || statusLower.includes('bearish')) {
+                    colorClass = 'bg-red-800/70 border-red-600';
+                    indicatorColor = 'text-red-400';
+                // NEUTRO (Amarelo/Âmbar)
+                } else if (statusLower.includes('neutro') || statusLower.includes('estável') || statusLower.includes('espera') || statusLower.includes('lateral')) {
+                    colorClass = 'bg-amber-800/70 border-amber-600';
+                    indicatorColor = 'text-amber-400';
+                }
+                cardsHtml += `
+                    <div class="flex-1 min-w-[140px] p-4 rounded-xl shadow-lg transition duration-300 ${colorClass} border">
+                        <p class="text-sm font-medium text-gray-300 uppercase truncate">${card.metric}</p>
+                        <p class="text-2xl font-extrabold mt-1 ${indicatorColor}">${card.value}</p>
+                        <p class="text-xs mt-1 font-semibold text-gray-200">${card.status}</p>
+                    </div>
+                `;
+            });
+            cardsHtml += '</div>';
+            return { cardHtml: cardsHtml, cleanedMarkdown: cleanedMarkdown };
+        }
+        // Função para converter o formato Markdown do Gemini em HTML
+        function formatMarkdownToHtml(markdown) {
+            let html = markdown;
+            // Converter negrito (**) e (__)
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+            // Converter itálico (*) e (_)
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            html = html.replace(/_(.*?)_/g, '<em>$1</em>');
+            // Converter cabeçalhos Markdown (#) para <h4>
+            html = html.replace(/^### (.*$)/gim, '<h4 class="text-lg font-bold text-gray-200 mt-4 mb-2">$1</h4>');
+            html = html.replace(/^## (.*$)/gim, '<h4 class="text-xl font-bold text-gray-200 mt-4 mb-2">$1</h4>');
+            html = html.replace(/^# (.*$)/gim, '<h4 class="text-2xl font-bold text-indigo-400 mt-4 mb-2">$1</h4>');
+            // Converte listas desordenadas (-) e (*) para <ul><li>
+            // Troca os marcadores de lista por <li>
+            html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
+            // Envolve os blocos de <li> em <ul> (Lógica de correção de lista)
+            if (html.includes('<li>')) {
+                let lines = html.split('\n');
+                let inList = false;
+                let finalHtml = [];
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine.startsWith('<li>') && !inList) {
+                        finalHtml.push('<ul>');
+                        inList = true;
+                    } else if (!trimmedLine.startsWith('<li>') && inList) {
+                        finalHtml.push('</ul>');
+                        inList = false;
+                    }
+                    // Adiciona a linha (seja <li> ou texto normal)
+                    finalHtml.push(line);
+                });
+               
+                // Fecha a última tag <ul> se ainda estiver aberta
+                if (inList) {
+                    finalHtml.push('</ul>');
+                }
+                html = finalHtml.join('\n');
             }
+            // Converter parágrafos (qualquer coisa que não seja tag ou cabeçalho)
+            html = html.split('\n').map(line => {
+                const trimmedLine = line.trim();
+                // Verifica se a linha não está vazia e não é o início de uma tag de bloco já convertida
+                if (trimmedLine === '' || trimmedLine.match(/<h|<ul|<\/ul|<li|<strong|<em|<a/i)) {
+                    return line;
+                }
+                // Adiciona tags de parágrafo ao redor do texto
+                return `<p>${trimmedLine}</p>`;
+            }).join('\n');
+            // Limpa linhas em branco que podem ter sobrado
+            html = html.replace(/(\n\s*){2,}/g, '\n\n');
+            return html;
         }
-
-        // ========== HUD ==========
-        function drawHUD() {
-            fill(0,0,0,200);
-            rect(20, 20, 280, 80, 12);
-            fill(255,50,50);
-            rect(40, 30, vida * 1.6, 20, 8);
-            fill(255);
-            textSize(16);
-            text(`VIDA ${vida}`, 140, 42);
-            fill(255,215,0);
-            text(`R$ ${dinheiro}`, 140, 68);
-            fill(0,255,255);
-            textSize(20);
-            text(['MorumBI','ÔNIBUS','METRÔ','JABAQUARA!'][fase-1], 250, 45);
-        }
-
-        function drawGameOver() {
-            fill(0,0,0,240);
-            rect(0,0,width,height);
-            fill(255,100,100);
-            textSize(60);
-            text("GAME OVER", width/2, height/2 - 30);
-            fill(255);
-            textSize(24);
-            text("ESPAÇO ou TOQUE", width/2, height/2 + 30);
-        }
-
-        function drawVitoria() {
-            fill(100,255,100,240);
-            rect(0,0,width,height);
-            fill(255,215,0);
-            textSize(50);
-            text("LEVEL COMPLETE!", width/2, height/2 - 40);
-            fill(255);
-            textSize(28);
-            text(`JABAQUARA! R$ ${dinheiro}`, width/2, height/2 + 20);
-            text("Toque para jogar de novo", width/2, height/2 + 50);
-        }
-
-        function keyPressed() {
-            if((key === ' ' || key === 'ArrowUp') && gameState === 'running' && canJump) {
-                gui.vy = -22;
-                canJump = false;
-            } else if(gameState !== 'running') restart();
-        }
-
-        function touchStarted() {
-            if(gameState === 'running' && canJump) {
-                gui.vy = -22;
-                canJump = false;
-            } else if(gameState !== 'running') restart();
-            return false;
-        }
-
-        function restart() {
-            gameState = 'running'; vida = 100; dinheiro = 0; fase = 1;
-            velocidadeJogo = 4; obstaculos = []; itens = []; canJump = true; shake = 0;
-            gui = new Gui();
-            loop();
-        }
-
-        function windowResized() {
-            resizeCanvas(min(1000, windowWidth), min(600, windowHeight));
-            chaoY = height - 100;
-            gui.y = chaoY - 42;
-        }
-
-        // Loading
-        setTimeout(() => {
-            const l = document.getElementById('loading');
-            l.style.transition = 'opacity 0.5s';
-            l.style.opacity = '0';
-            setTimeout(() => l.style.display = 'none', 500);
-        }, 2000);
     </script>
 </body>
 </html>
