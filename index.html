@@ -202,32 +202,77 @@
             }
             throw new Error("Falha na chamada da API após várias tentativas.");
         }
-        // Função principal que chama o Gemini API
-        async function analyzeStock(analysisType) {
-            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
-            const resultsDiv = document.getElementById('results');
-            const cardsDiv = document.getElementById('cardsSection');
-            const sourcesDiv = document.getElementById('sourcesContainer');
-            const titleElement = document.getElementById('analysisTitle');
-            if (!ticker) {
-                showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
-                return;
+        // Função principal que chama o Gemini API via proxy
+async function analyzeStock(analysisType) {
+    const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+    const resultsDiv = document.getElementById('results');
+    const cardsDiv = document.getElementById('cardsSection');
+    const sourcesDiv = document.getElementById('sourcesContainer');
+    const titleElement = document.getElementById('analysisTitle');
+    if (!ticker) {
+        showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
+        return;
+    }
+    titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
+    resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
+    cardsDiv.innerHTML = '';
+    sourcesDiv.innerHTML = '';
+    try {
+        const config = getAnalysisConfig(analysisType, ticker);
+        const apiUrl = '/.netlify/functions/gemini-proxy';
+        const payload = {
+            contents: [{ parts: [{ text: config.userQuery }] }],
+            tools: [{ "google_search": {} }],
+            systemInstruction: {
+                parts: [{ text: config.systemPrompt }]
             }
-            titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
-            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
-            cardsDiv.innerHTML = '';
-            sourcesDiv.innerHTML = '';
-            try {
-                const config = getAnalysisConfig(analysisType, ticker);
-                // Usa a chave API definida acima
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                const payload = {
-                    contents: [{ parts: [{ text: config.userQuery }] }],
-                    tools: [{ "google_search": {} }],
-                    systemInstruction: {
-                        parts: [{ text: config.systemPrompt }]
-                    }
-                };
+        };
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+            throw new Error(`Falha na API: ${response.status}`);
+        }
+        const result = await response.json();
+        const candidate = result.candidates?.[0];
+        if (!candidate || !candidate.content?.parts?.[0]?.text) {
+            console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
+            throw new Error("Resposta inválida da API ou conteúdo vazio.");
+        }
+        let generatedText = candidate.content.parts[0].text;
+       
+        // 1. Processar e renderizar os cards
+        const { cardHtml, cleanedMarkdown } = renderKeyMetricsAsCards(generatedText);
+        cardsDiv.innerHTML = cardHtml;
+       
+        // 2. Formatar o restante do texto
+        const formattedText = formatMarkdownToHtml(cleanedMarkdown);
+        resultsDiv.innerHTML = formattedText;
+        titleElement.textContent = config.title;
+        // 3. Extrair e exibir as fontes (citações)
+        const sources = extractGroundingSources(candidate);
+        if (sources.length > 0) {
+            const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
+                .map(uri => sources.find(s => s.uri === uri));
+            const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) =>
+                `<a href="${s.uri}" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">${s.title} (${index + 1})</a>`
+            ).join(', ');
+            sourcesDiv.innerHTML = sourcesHtml;
+        } else {
+            sourcesDiv.innerHTML = 'Nenhuma fonte citada pelo modelo.';
+        }
+        showMessage("Análise gerada com sucesso!", 'success');
+    } catch (error) {
+        console.error("Erro na análise:", error);
+        titleElement.textContent = 'Erro na Análise';
+        resultsDiv.innerHTML = `<p class="text-red-500">Ocorreu um erro ao processar sua solicitação: ${error.message}. Por favor, tente novamente.</p>`;
+        cardsDiv.innerHTML = '';
+        sourcesDiv.innerHTML = '';
+        showMessage(`Falha ao gerar análise: ${error.message}`, 'error');
+    }
+}
                 const response = await fetchWithBackoff(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
