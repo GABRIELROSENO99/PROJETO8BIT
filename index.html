@@ -108,8 +108,6 @@
     <script>
         // Variáveis Globais do Canvas (MANDATÓRIAS)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // Chave API fornecida pelo usuário, inserida para corrigir o erro de autenticação.
-        const apiKey = "";
         const modelName = 'gemini-2.5-flash-preview-09-2025';
         // --- Funções de Utilitário e UI ---
         function showMessage(message, type = 'info') {
@@ -149,25 +147,26 @@
                 case 'fundamental':
                     title = "Análise Fundamentalista - " + ticker;
                     const fundamentalCards = "Os cards DEVEM ser exatamente estes: 1. Dívida Líquida / EBITDA Atual (Foco: Saúde Financeira). 2. ROE (Return on Equity) (Foco: Rentabilidade). 3. ROIC (Return on Invested Capital) vs WACC (Foco: Eficiência e Criação de Valor). 4. CAGR de Receita (5 Anos) (Foco: Crescimento). 5. Liquidez Corrente (Foco: Solidez de Curto Prazo). 6. Margem Líquida (Foco: Lucratividade Operacional).";
-                    systemPrompt = `Você é um analista fundamentalista experiente e profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, evidências quantitativas e qualitativas, comparações setoriais e projeções fundamentadas. ${cardInstruction} ${fundamentalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo benchmarks setoriais. O Significado: O que a métrica/indicador realmente representa no contexto da empresa e do mercado. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e razões. Em seguida, forneça uma Análise Detalhada com subtópicos: Balanço Patrimonial (incluindo análise de ativos, passivos e patrimônio), Demonstração de Resultados (DRE) (com breakdown de receitas, custos e margens), Fluxo de Caixa (análise de geração e alocação), Análise Setorial/Vantagem Competitiva (Moat) (incluindo análise SWOT e posicionamento). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Compra Forte', 'Manter' etc.) e riscos potenciais. O resultado deve ser formatado em Markdown com títulos e listas. Gere a análise fundamentalista mais completa e profissional possível com foco em Saúde Financeira, Rentabilidade, Crescimento e Posição Competitiva.`;
+                    systemPrompt = `Você é um analista fundamentalista experiente. ${cardInstruction} ${fundamentalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado. O Significado: O que a métrica/indicador realmente representa. O Ideal: O que o investidor/trader deve buscar. Em seguida, forneça uma Análise Detalhada com subtópicos: Balanço Patrimonial, Demonstração de Resultados (DRE), Análise Setorial/Vantagem Competitiva (Moat). Finalize com uma Conclusão: Resumo final e direcionamento (Alvo, Tendência, Classificação). O resultado deve ser formatado em Markdown com títulos e listas. Gere a análise fundamentalista mais completa possível com foco em Saúde Financeira, Rentabilidade e Posição Competitiva.`;
                     userQuery = `Forneça a análise fundamentalista mais recente para o ativo: ${ticker}.`;
                     break;
                 case 'technical':
                     title = "Análise Técnica Completa - " + ticker;
-                    const technicalCards = "Os cards DEVEM ser exatamente estes: 1. Suporte Horizontal Imediato (Foco: Risco/Reversão (Piso)). 2. Resistência Horizontal Imediata (Foco: Alvo/Reversão (Teto)). 3. Média Móvel Exponencial (MME) de 200 Períodos (Foco: Tendência Primária). 4. RSI (Índice de Força Relativa) (Foco: Momentum e Sobrecomprado/Vendido). 5. MACD (Moving Average Convergence Divergence) (Foco: Cruzamentos e Momentum). 6. Volume Médio Diário vs Atual (Foco: Confirmação da Força).";
-                    systemPrompt = `Você é um analista técnico de mercado de ações de elite e profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, evidências gráficas e quantitativas, interpretações de padrões e projeções baseadas em históricos. ${cardInstruction} ${technicalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo níveis históricos e contextos de mercado. O Significado: O que a métrica/indicador realmente representa no contexto da tendência e volatilidade. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e estratégias associadas. Em seguida, forneça uma Análise Detalhada com subtópicos: Identificação de Padrões Gráficos (candlesticks, formações como cabeça e ombros, triângulos), Níveis de Fibonacci (retracements e extensions), Análise de Volatilidade (Bandas de Bollinger e ATR), Indicadores de Tendência (ADMI, Ichimoku), e Conclusão de Tendência com Sugestão de Ponto de Entrada/Saída (incluindo stop-loss e take-profit). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Bullish', 'Bearish' etc.) e riscos potenciais. Use o formato Markdown. Gere a análise técnica mais completa e profissional possível, focada em Tendências, Padrões, Momentum e Força do Preço, no timeframe diário com referências a semanais/mensais para contexto.`;
+                    cardInstruction = "A análise DEVE começar imediatamente (sem texto introdutório) com uma lista Markdown de 6 a 9 'INDICADORES CHAVE'. Use o formato EXATO para cada item da lista (começando em uma nova linha): `- **[MÉTRICA]:** [VALOR] | Status: [STATUS_COLOR_KEY]`. As chaves de status **MANDATÓRIAS** para coloração são: 'COMPRA', 'VENDA', ou 'NEUTRO'.";
+                    const technicalCards = "Os cards DEVEM incluir pelo menos: Suporte Horizontal Imediato (Foco: Risco/Reversão (Piso)), Resistência Horizontal Imediata (Foco: Alvo/Reversão (Teto)), Preço Atual. Outros cards sugeridos: 1. Média Móvel Exponencial (MME) de 200 Períodos (Foco: Tendência Primária). 2. RSI (Índice de Força Relativa) e Nível (Foco: Momentum e Sobrecomprado/Vendido). 3. Bandas de Bollinger (Largura) (Foco: Volatilidade). 6. Volume Financeiro Médio (VMA) x Volume Atual (Foco: Confirmação da Força).";
+                    systemPrompt = `Você é um analista técnico de mercado de ações de elite. ${cardInstruction} ${technicalCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado. O Significado: O que a métrica/indicador realmente representa. O Ideal: O que o investidor/trader deve buscar. Em seguida, forneça uma Análise Detalhada com subtópicos: Identificação de Padrões Gráficos, Níveis de Fibonacci e Conclusão de Tendência com Sugestão de Ponto de Entrada/Saída. Finalize com uma Conclusão: Resumo final e direcionamento (Alvo, Tendência, Classificação). Use o formato Markdown. Gere a análise técnica mais completa possível, focada em Tendências, Padrões e Força do Preço, no timeframe diário.`;
                     userQuery = `Realize a análise técnica para a ação/ativo: ${ticker}.`;
                     break;
                 case 'momentum':
                     title = "Análise de Momentum - " + ticker;
                     const momentumCards = "Os cards DEVEM ser exatamente estes: 1. Retorno Total (Últimos 12 Meses) (Foco: Força Absoluta (Longo Prazo)). 2. Retorno da Ação vs Índice de Referência (12 Meses) (Foco: Força Relativa (Outperformance)). 3. Retorno dos Últimos 3 Meses (Foco: Curva de Curto Prazo). 4. Retorno dos Últimos 6 Meses (Foco: Curva de Médio Prazo). 5. Taxa de Variação (RoC) de 20 Períodos (Foco: Persistência da Tendência). 6. Posição no Ranking de Momentum (Percentil) (Foco: Classificação em relação aos Pares).";
-                    systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo, com abordagem profissional. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, comparações quantitativas, gráficos de performance relativa e projeções baseadas em ciclos de momentum. ${cardInstruction} ${momentumCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo benchmarks de mercado e setoriais. O Significado: O que a métrica/indicador realmente representa no contexto de ciclos econômicos. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e estratégias de rotação. Em seguida, forneça uma Análise Detalhada com subtópicos: Comparação de Retornos em diferentes janelas (com curvas de equity), Utilização de Indicadores de Momentum (MACD, RSI estocástico), Análise de Força Relativa (vs índices e pares), e Conclusão sobre a Posição da Ação na Curva (Aceleração/Desaceleração, incluindo fatores catalisadores). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação) e riscos potenciais como reversões. Use o formato Markdown. Gere a análise de Momentum mais completa e profissional possível, focada na Força e Persistência da Tendência de Preço, comparando a ação com o índice de referência apropriado (e.g., S&P 500 para ações US, Ibovespa para ações BR) e pares setoriais.`;
+                    systemPrompt = `Você é um especialista em estratégias de momentum de curto prazo. ${cardInstruction} ${momentumCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado. O Significado: O que a métrica/indicador realmente representa. O Ideal: O que o investidor/trader deve buscar. Em seguida, forneça uma Análise Detalhada com subtópicos: Comparação de Retornos em diferentes janelas, Utilização de Indicadores de Momentum (MACD) e Conclusão sobre a Posição da Ação na Curva (Aceleração/Desaceleração). Finalize com uma Conclusão: Resumo final e direcionamento (Alvo, Tendência, Classificação). Use o formato Markdown. Gere a análise de Momentum mais completa possível, focada na Força e Persistência da Tendência de Preço, comparando a ação com o índice de referência apropriado (e.g., S&P 500 para ações US, Ibovespa para ações BR).`;
                     userQuery = `Realize a análise de momentum para a ação/ativo: ${ticker}.`;
                     break;
                 case 'valuation':
                     title = "Análise de Valuation - " + ticker;
                     const valuationCards = "Os cards DEVEM ser exatamente estes: 1. P/L Atual vs Média Histórica (Foco: Preço vs Lucro). 2. PEG Ratio e Classificação (Foco: Preço vs Crescimento). 3. EV/EBITDA vs Média do Setor (Foco: Valor da Empresa). 4. P/VP (Preço/Valor Patrimonial) (Foco: Preço vs Valor Contábil). 5. Retorno Implícito (DCF) (Foco: Valor Intrínseco). 6. Preço Justo Alvo (Média Ponderada) (Foco: Conclusão de Preço).";
-                    systemPrompt = `Você é um analista de valuation experiente e profissional. O objetivo é determinar se a empresa está sobrevalorizada, justamente valorizada ou subvalorizada no mercado atual e entender seu potencial de crescimento futuro, com análises quantitativas rigorosas. Forneça análises completas, baseadas em dados reais atualizados, com raciocínio lógico, modelos financeiros e sensibilidade. ${cardInstruction} ${valuationCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado, incluindo históricos e setoriais. O Significado: O que a métrica/indicador realmente representa no contexto de ciclos de mercado. O Ideal: O que o investidor/trader deve buscar, com faixas ideais e ajustes por risco. Em seguida, forneça uma Análise Detalhada com subtópicos: Detalhamento dos Múltiplos (com comparações peer-to-peer), Análise da Taxa de Crescimento (Growth Rate, incluindo projeções EPS), Projeção Simplificada de Fluxo de Caixa Livre (DCF com premissas explicitas), Análise de Sensibilidade e Margem de Segurança, e Modelos Alternativos (como Gordon Growth ou Sum-of-Parts). Finalize com uma Conclusão: Resumo final, direcionamento (Alvo, Tendência, Classificação como 'Subvalorizada' etc.) e riscos potenciais. Use o formato Markdown com títulos e listas. Gere a análise de valuation mais completa e profissional possível, utilizando múltiplos e metodologias de precificação para determinar o Preço Justo.`;
+                    systemPrompt = `Você é um analista de valuation experiente. O objetivo é determinar se a empresa está sobrevalorizada, justamente valorizada ou subvalorizada no mercado atual e entender seu potencial de crescimento futuro. ${cardInstruction} ${valuationCards} Após os cards, para cada card, inclua uma seção explicativa chamada 'Lição do Card [Número]', detalhando: O Cenário: O que está sendo comparado. O Significado: O que a métrica/indicador realmente representa. O Ideal: O que o investidor/trader deve buscar. Em seguida, forneça uma Análise Detalhada com subtópicos: Detalhamento dos Múltiplos, Análise da Taxa de Crescimento (Growth Rate), Projeção Simplificada de Fluxo de Caixa Livre e Conclusão Final de Valuation com Margem de Segurança. Finalize com uma Conclusão: Resumo final e direcionamento (Alvo, Tendência, Classificação). Use o formato Markdown com títulos e listas. Gere a análise fundamentalista com foco em Valuation mais completa possível, utilizando múltiplos e metodologias de precificação para determinar o Preço Justo.`;
                     userQuery = `Forneça a análise de valuation racional mais recente para o ativo: ${ticker}.`;
                     break;
                 default:
@@ -202,77 +201,32 @@
             }
             throw new Error("Falha na chamada da API após várias tentativas.");
         }
-        // Função principal que chama o Gemini API via proxy
-async function analyzeStock(analysisType) {
-    const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
-    const resultsDiv = document.getElementById('results');
-    const cardsDiv = document.getElementById('cardsSection');
-    const sourcesDiv = document.getElementById('sourcesContainer');
-    const titleElement = document.getElementById('analysisTitle');
-    if (!ticker) {
-        showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
-        return;
-    }
-    titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
-    resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
-    cardsDiv.innerHTML = '';
-    sourcesDiv.innerHTML = '';
-    try {
-        const config = getAnalysisConfig(analysisType, ticker);
-        const apiUrl = '/.netlify/functions/gemini-proxy';
-        const payload = {
-            contents: [{ parts: [{ text: config.userQuery }] }],
-            tools: [{ "google_search": {} }],
-            systemInstruction: {
-                parts: [{ text: config.systemPrompt }]
+        // Função principal que chama o Gemini API
+        async function analyzeStock(analysisType) {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            const resultsDiv = document.getElementById('results');
+            const cardsDiv = document.getElementById('cardsSection');
+            const sourcesDiv = document.getElementById('sourcesContainer');
+            const titleElement = document.getElementById('analysisTitle');
+            if (!ticker) {
+                showMessage("Por favor, insira um ticker de ação (ex: GOOG).", 'error');
+                return;
             }
-        };
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-            throw new Error(`Falha na API: ${response.status}`);
-        }
-        const result = await response.json();
-        const candidate = result.candidates?.[0];
-        if (!candidate || !candidate.content?.parts?.[0]?.text) {
-            console.error("Resposta API bruta (candidate missing content):", JSON.stringify(result, null, 2));
-            throw new Error("Resposta inválida da API ou conteúdo vazio.");
-        }
-        let generatedText = candidate.content.parts[0].text;
-       
-        // 1. Processar e renderizar os cards
-        const { cardHtml, cleanedMarkdown } = renderKeyMetricsAsCards(generatedText);
-        cardsDiv.innerHTML = cardHtml;
-       
-        // 2. Formatar o restante do texto
-        const formattedText = formatMarkdownToHtml(cleanedMarkdown);
-        resultsDiv.innerHTML = formattedText;
-        titleElement.textContent = config.title;
-        // 3. Extrair e exibir as fontes (citações)
-        const sources = extractGroundingSources(candidate);
-        if (sources.length > 0) {
-            const uniqueSources = Array.from(new Set(sources.map(s => s.uri)))
-                .map(uri => sources.find(s => s.uri === uri));
-            const sourcesHtml = 'Fontes Consultadas: ' + uniqueSources.map((s, index) =>
-                `<a href="${s.uri}" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">${s.title} (${index + 1})</a>`
-            ).join(', ');
-            sourcesDiv.innerHTML = sourcesHtml;
-        } else {
-            sourcesDiv.innerHTML = 'Nenhuma fonte citada pelo modelo.';
-        }
-        showMessage("Análise gerada com sucesso!", 'success');
-    } catch (error) {
-        console.error("Erro na análise:", error);
-        titleElement.textContent = 'Erro na Análise';
-        resultsDiv.innerHTML = `<p class="text-red-500">Ocorreu um erro ao processar sua solicitação: ${error.message}. Por favor, tente novamente.</p>`;
-        cardsDiv.innerHTML = '';
-        sourcesDiv.innerHTML = '';
-        showMessage(`Falha ao gerar análise: ${error.message}`, 'error');
-    }
-}
+            titleElement.innerHTML = `<span class="loading-animation"></span> Gerando ${analysisType.charAt(0).toUpperCase() + analysisType.slice(1)} para ${ticker}...`;
+            resultsDiv.innerHTML = '<p class="text-gray-400 italic">Estou fazendo em segundos o trabalho que você levaria horas, então deixa o papai aqui trabalhar e aguarde mais alguns segundos</p>';
+            cardsDiv.innerHTML = '';
+            sourcesDiv.innerHTML = '';
+            try {
+                const config = getAnalysisConfig(analysisType, ticker);
+                // Usa a chave API definida acima
+                const apiUrl = '/.netlify/functions/gemini-proxy'; // Isso chama o backend no mesmo site
+                const payload = {
+                    contents: [{ parts: [{ text: config.userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: config.systemPrompt }]
+                    }
+                };
                 const response = await fetchWithBackoff(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
